@@ -49,7 +49,7 @@ export function NavBar() {
         <div className="flex items-center gap-3">
           <Link href="/" className="flex items-center gap-2">
             <Image src="/logo.png" alt="Ethton" width={28} height={28} priority className="rounded-md" />
-            <span className="text-xl font-bold text-primary">Ethton</span>
+            <span className="text-xl font-bold text-primary">Splitcast</span>
           </Link>
         </div>
 

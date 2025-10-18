@@ -226,48 +226,110 @@ export default function GroupDetailPage() {
                   Aggiungi spesa
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="sm:max-w-[500px]">
                 <DialogHeader>
-                  <DialogTitle>Nuova spesa</DialogTitle>
+                  <DialogTitle className="text-2xl font-bold">Nuova spesa</DialogTitle>
                 </DialogHeader>
-                <div className="space-y-3">
-                  <div className="space-y-1">
-                    <Label>Descrizione</Label>
-                    <Input value={description} onChange={e => setDescription(e.target.value)} />
+                <div className="space-y-5 py-4">
+                  {/* Descrizione */}
+                  <div className="space-y-2">
+                    <Label htmlFor="description" className="text-base font-semibold">Descrizione</Label>
+                    <Input 
+                      id="description"
+                      placeholder="Es. Cena, Benzina, Hotel..."
+                      value={description} 
+                      onChange={e => setDescription(e.target.value)}
+                      className="h-12 text-base"
+                    />
                   </div>
-                  <div className="space-y-1">
-                    <Label>Importo</Label>
-                    <Input type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} />
+
+                  {/* Importo */}
+                  <div className="space-y-2">
+                    <Label htmlFor="amount" className="text-base font-semibold">Importo</Label>
+                    <div className="relative">
+                      <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                      <Input 
+                        id="amount"
+                        type="number" 
+                        step="0.01" 
+                        placeholder="0.00"
+                        value={amount} 
+                        onChange={e => setAmount(e.target.value)}
+                        className="h-12 text-base pl-10"
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-1">
-                    <Label>Pagato da</Label>
-                    <select className="w-full h-10 rounded-md border px-3 bg-background" value={paidBy} onChange={e => setPaidBy(e.target.value)}>
-                      <option value="">Seleziona</option>
+
+                  {/* Pagato da */}
+                  <div className="space-y-2">
+                    <Label htmlFor="paidBy" className="text-base font-semibold">Pagato da</Label>
+                    <select 
+                      id="paidBy"
+                      className="w-full h-12 rounded-md border border-input px-3 bg-background text-base focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2" 
+                      value={paidBy} 
+                      onChange={e => setPaidBy(e.target.value)}
+                    >
+                      <option value="">Seleziona chi ha pagato</option>
                       {group.members.map(m => (
-                        <option key={m.userId} value={m.userId}>{m.name}</option>
+                        <option key={m.userId} value={m.userId}>
+                          {m.name.length > 20 ? `${m.name.substring(0, 20)}...` : m.name}
+                        </option>
                       ))}
                     </select>
                   </div>
-                  <div className="space-y-1">
-                    <Label>Dividi tra</Label>
-                    <div className="grid grid-cols-2 gap-2">
+
+                  {/* Dividi tra */}
+                  <div className="space-y-3">
+                    <Label className="text-base font-semibold">Dividi tra</Label>
+                    <div className="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto p-1">
                       {group.members.map(m => {
                         const checked = splitBetween.includes(m.userId);
                         return (
-                          <label key={m.userId} className="flex items-center gap-2 text-sm">
-                            <input type="checkbox" checked={checked} onChange={(e) => {
-                              setSplitBetween(prev => e.target.checked ? [...prev, m.userId] : prev.filter(id => id !== m.userId));
-                            }} />
-                            {m.name}
+                          <label 
+                            key={m.userId} 
+                            className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                              checked 
+                                ? 'border-primary bg-primary/5' 
+                                : 'border-border hover:border-primary/50 hover:bg-accent/50'
+                            }`}
+                          >
+                            <input 
+                              type="checkbox" 
+                              checked={checked} 
+                              onChange={(e) => {
+                                setSplitBetween(prev => e.target.checked ? [...prev, m.userId] : prev.filter(id => id !== m.userId));
+                              }}
+                              className="h-5 w-5 rounded border-gray-300"
+                            />
+                            <span className="text-base font-medium flex-1 truncate">
+                              {m.name.length > 25 ? `${m.name.substring(0, 25)}...` : m.name}
+                            </span>
                           </label>
                         );
                       })}
                     </div>
-                    <p className="text-xs text-muted-foreground">Se non selezioni nessuno, la spesa è divisa tra tutti</p>
+                    <p className="text-sm text-muted-foreground bg-muted/50 p-2 rounded">
+                      💡 Se non selezioni nessuno, la spesa sarà divisa equamente tra tutti i membri
+                    </p>
                   </div>
-                  <div className="flex justify-end gap-2 pt-2">
-                    <Button variant="outline" onClick={() => setShowAddExpense(false)}>Annulla</Button>
-                    <Button onClick={handleAddExpense}>Salva</Button>
+
+                  {/* Buttons */}
+                  <div className="flex gap-3 pt-4">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setShowAddExpense(false)}
+                      className="flex-1 h-11"
+                    >
+                      Annulla
+                    </Button>
+                    <Button 
+                      onClick={handleAddExpense}
+                      className="flex-1 h-11"
+                      disabled={!description.trim() || !amount || parseFloat(amount) <= 0 || !paidBy}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Salva spesa
+                    </Button>
                   </div>
                 </div>
               </DialogContent>
