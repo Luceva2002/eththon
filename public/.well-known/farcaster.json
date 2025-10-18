@@ -1,10 +1,18 @@
 {
-  "name": "Ethton",
-  "icon": "/logo.png",
-  "description": "Gestisci e dividi spese di gruppo con wallet Web3",
-  "homescreen": {
-    "action": "/",
-    "splashBackgroundColor": "#0b1220"
+  "accountAssociation": {
+    "header": "eyJmaWQiOjEzNzQ5MjIsInR5cGUiOiJhdXRoIiwia2V5IjoiMHhFNDJkNzUyODI1NjVCYUU3QTdhYkFCOWVBRmNlODU4MDI0RjU1MDljIn0",
+    "payload": "eyJkb21haW4iOiJldGh0aG9uLnZlcmNlbC5hcHAifQ",
+    "signature": "7Rgr7c5do71+kXffKFwFmYs7EQ8pl7Vkycwq6detz6Z3QYjzT+ZbcynsGP7qGB5GChRF1BxAzavR6C+4/SbHyxw="
+  },
+  "frame": {
+    "version": "1",
+    "name": "Ethton",
+    "iconUrl": "https://eththon.vercel.app/logo.png",
+    "homeUrl": "https://eththon.vercel.app/",
+    "imageUrl": "https://eththon.vercel.app/logo.png",
+    "buttonTitle": "Apri Ethton",
+    "splashImageUrl": "https://eththon.vercel.app/logo.png",
+    "splashBackgroundColor": "#0b1220",
+    "webhookUrl": "https://eththon.vercel.app/api/webhook"
   }
 }
-

@@ -24,6 +24,14 @@ export const metadata: Metadata = {
     shortcut: "/logo.png",
     apple: "/logo.png",
   },
+  manifest: "/.well-known/farcaster.json",
+  other: {
+    "fc:frame": "vNext",
+    "fc:frame:image": "https://eththon.vercel.app/logo.png",
+    "fc:frame:button:1": "Apri App",
+    "fc:frame:button:1:action": "link",
+    "fc:frame:button:1:target": "https://eththon.vercel.app",
+  },
 };
 
 export default function RootLayout({
