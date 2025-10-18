@@ -43,9 +43,32 @@ export default function GroupDetailPage() {
       return;
     }
 
-    loadGroupData();
+    // Controlla se c'è un parametro invite nell'URL
+    const searchParams = new URLSearchParams(window.location.search);
+    const inviteToken = searchParams.get('invite');
+    
+    if (inviteToken) {
+      handleInviteJoin();
+    } else {
+      loadGroupData();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.groupId, router]);
+
+  const handleInviteJoin = async () => {
+    const groupId = params.groupId as string;
+    const result = await groupService.joinGroup(groupId);
+    
+    if (result.success) {
+      // Rimuovi il parametro invite dall'URL
+      window.history.replaceState({}, '', `/groups/${groupId}`);
+      await loadGroupData();
+      alert(result.message);
+    } else {
+      alert(result.message);
+      router.push('/');
+    }
+  };
 
   const loadGroupData = async () => {
     setIsLoading(true);

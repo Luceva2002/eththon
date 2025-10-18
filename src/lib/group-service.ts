@@ -20,9 +20,30 @@ async function safe<T>(fn: () => Promise<T>): Promise<{ ok: true; data: T } | { 
 
 export const groupService = {
   // Lista gruppi con membri (nickname). Totali calcolati da spese e pagamenti.
+  // MOSTRA SOLO I GRUPPI DI CUI L'UTENTE È MEMBRO
   async getGroups(): Promise<Group[]> {
+    const currentUser = authService.getCurrentUser();
+    if (!currentUser) return [];
+    
+    const myNickname = currentUser.name;
+    
     const res = await safe(async () => {
-      const { data: groupsData, error } = await supabase.from('groups').select('*');
+      // Query con JOIN per prendere solo i gruppi dove l'utente è membro
+      const { data: myMemberships, error: memberError } = await supabase
+        .from('group_members')
+        .select('group_id')
+        .eq('nickname', myNickname);
+      
+      if (memberError) throw memberError;
+      if (!myMemberships || myMemberships.length === 0) return [];
+      
+      const myGroupIds = myMemberships.map(m => m.group_id);
+      
+      const { data: groupsData, error } = await supabase
+        .from('groups')
+        .select('*')
+        .in('id', myGroupIds);
+      
       if (error) throw error;
       const groups: Group[] = [];
       for (const g of groupsData as GroupRow[]) {
@@ -39,6 +60,13 @@ export const groupService = {
 
         const expenses = await this.getGroupExpenses(String(g.id));
         const payments = await this.getGroupPayments(String(g.id));
+        
+        console.log(`📊 Gruppo ${g.name} (ID: ${g.id}):`, {
+          membri: members.length,
+          spese: expenses.length,
+          pagamenti: payments.length
+        });
+        
         const computedMembers = this.computeBalancesWithPayments({
           id: String(g.id),
           name: g.name,
@@ -239,6 +267,58 @@ export const groupService = {
       return `${origin}/groups/${groupId}?invite=${token}`;
     }
     return `/groups/${groupId}`;
+  },
+
+  // Joina un gruppo tramite invito
+  async joinGroup(groupId: string): Promise<{ success: boolean; message: string }> {
+    const currentUser = authService.getCurrentUser();
+    if (!currentUser) {
+      return { success: false, message: 'Devi fare login prima di joinare un gruppo' };
+    }
+
+    try {
+      // Verifica che il gruppo esista
+      const { data: group, error: groupError } = await supabase
+        .from('groups')
+        .select('*')
+        .eq('id', groupId)
+        .single();
+
+      if (groupError || !group) {
+        return { success: false, message: 'Gruppo non trovato' };
+      }
+
+      // Verifica se l'utente è già membro
+      const { data: existing } = await supabase
+        .from('group_members')
+        .select('*')
+        .eq('group_id', groupId)
+        .eq('nickname', currentUser.name)
+        .maybeSingle();
+
+      if (existing) {
+        return { success: true, message: 'Sei già membro di questo gruppo' };
+      }
+
+      // Aggiungi l'utente come membro
+      const { error: insertError } = await supabase
+        .from('group_members')
+        .insert({
+          group_id: groupId,
+          nickname: currentUser.name,
+          wallet_address: currentUser.walletAddress?.toLowerCase() || null,
+        });
+
+      if (insertError) {
+        console.error('Errore joinGroup:', insertError);
+        return { success: false, message: 'Errore durante l\'aggiunta al gruppo' };
+      }
+
+      return { success: true, message: `Ti sei unito al gruppo "${group.name}"!` };
+    } catch (error) {
+      console.error('Errore joinGroup:', error);
+      return { success: false, message: 'Errore imprevisto' };
+    }
   },
 
   // Pagamenti
