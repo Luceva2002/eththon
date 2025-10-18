@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { authService } from '@/lib/auth-service';
 import { walletService } from '@/lib/wallet-service';
@@ -11,6 +13,7 @@ import { walletService } from '@/lib/wallet-service';
 export default function SignInPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState<'metamask' | 'coinbase' | 'farcaster' | null>(null);
+  const [nickname, setNickname] = useState('');
   const [error, setError] = useState('');
 
   const connectAndSignIn = async (provider: 'metamask' | 'coinbase' | 'farcaster') => {
@@ -19,7 +22,14 @@ export default function SignInPage() {
     try {
       const { address } = await walletService.connect(provider);
       await authService.signInWithWallet(address);
+      if (nickname) {
+        await authService.updateUser({ name: nickname });
+      }
       router.push('/');
+      // Apri la dapp/wallet in nuova scheda quando possibile
+      if (provider === 'metamask') window.open('https://metamask.app.link/', '_blank');
+      if (provider === 'coinbase') window.open('https://go.cb-w.com/', '_blank');
+      if (provider === 'farcaster') window.open('https://walletconnect.com/', '_blank');
     } catch (err) {
       setError('Errore durante la connessione del wallet');
       console.error(err);
@@ -42,7 +52,12 @@ export default function SignInPage() {
             <CardDescription>Connettiti con il tuo wallet</CardDescription>
           </CardHeader>
 
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="nickname">Nickname</Label>
+              <Input id="nickname" placeholder="es. alice.eth" value={nickname} onChange={(e) => setNickname(e.target.value)} />
+              <p className="text-xs text-muted-foreground">Se hai ENS, puoi usare il tuo dominio come nickname.</p>
+            </div>
             <Button className="w-full" variant="secondary" onClick={() => connectAndSignIn('metamask')} disabled={isLoading !== null}>
               {isLoading === 'metamask' ? 'Connessione MetaMask...' : 'Accedi con MetaMask'}
             </Button>

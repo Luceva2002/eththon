@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Mail, User as UserIcon, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -18,6 +18,8 @@ export default function ProfilePage() {
   const [isConnected, setIsConnected] = useState(false);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [ensName, setEnsName] = useState<string | null>(null);
+  const [nickname, setNickname] = useState('');
+  const [savingNick, setSavingNick] = useState(false);
   const [isSwitching, setIsSwitching] = useState<'metamask' | 'coinbase' | 'farcaster' | null>(null);
 
   useEffect(() => {
@@ -109,28 +111,7 @@ export default function ProfilePage() {
               <p className="text-sm text-muted-foreground">Membro da gennaio 2024</p>
             </div>
           </div>
-
-          <div className="space-y-4 pt-4 border-t">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-md bg-primary/10">
-                <UserIcon className="h-5 w-5 text-primary" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm text-muted-foreground">Nome</p>
-                <p className="font-medium">{user.name}</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-md bg-primary/10">
-                <Mail className="h-5 w-5 text-primary" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm text-muted-foreground">Email</p>
-                <p className="font-medium">{user.email}</p>
-              </div>
-            </div>
-          </div>
+            
         </CardContent>
       </Card>
 
@@ -155,14 +136,59 @@ export default function ProfilePage() {
             )}
           </div>
 
+          {/* Nickname prima accesso */}
+          <div className="space-y-2">
+            <p className="text-sm">Nickname pubblico</p>
+            <div className="flex gap-2">
+              <input
+                className="w-full h-10 rounded-md border px-3 bg-background"
+                placeholder={ensName || 'es. alice.eth'}
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
+              />
+              <Button
+                onClick={async () => {
+                  if (!user) return;
+                  setSavingNick(true);
+                  try {
+                    const updated = await authService.updateUser({ name: nickname || ensName || user.name });
+                    setNickname('');
+                    setEnsName(updated.name.endsWith('.eth') ? updated.name : ensName);
+                  } finally {
+                    setSavingNick(false);
+                  }
+                }}
+                disabled={savingNick || (!nickname && !ensName)}
+              >
+                {savingNick ? 'Salvataggio…' : 'Salva'}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">Se usi ENS, il tuo nickname può essere il tuo dominio (es. alice.eth).</p>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-            <Button variant="secondary" onClick={() => switchProvider('metamask')} disabled={!!isSwitching}>
+            <Button
+              variant={walletService.getCurrentProvider() === 'metamask' ? 'secondary' : 'outline'}
+              onClick={() => switchProvider('metamask')}
+              disabled={!!isSwitching}
+              aria-label="Connetti MetaMask"
+            >
               {isSwitching === 'metamask' ? 'Connessione…' : 'MetaMask'}
             </Button>
-            <Button variant="outline" onClick={() => switchProvider('coinbase')} disabled={!!isSwitching}>
+            <Button
+              variant={walletService.getCurrentProvider() === 'coinbase' ? 'secondary' : 'outline'}
+              onClick={() => switchProvider('coinbase')}
+              disabled={!!isSwitching}
+              aria-label="Connetti Coinbase Wallet su Base"
+            >
               {isSwitching === 'coinbase' ? 'Connessione…' : 'Coinbase (Base)'}
             </Button>
-            <Button variant="outline" onClick={() => switchProvider('farcaster')} disabled={!!isSwitching}>
+            <Button
+              variant={walletService.getCurrentProvider() === 'farcaster' ? 'secondary' : 'outline'}
+              onClick={() => switchProvider('farcaster')}
+              disabled={!!isSwitching}
+              aria-label="Connetti via WalletConnect (Farcaster)"
+            >
               {isSwitching === 'farcaster' ? 'Connessione…' : 'Farcaster (WalletConnect)'}
             </Button>
           </div>

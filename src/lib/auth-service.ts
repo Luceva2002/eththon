@@ -2,6 +2,7 @@
 // TODO: Replace with real authentication (e.g., NextAuth, Supabase, etc.)
 
 import { User } from './types';
+import { resolveEnsName } from './ens-service';
 
 // Simulated user storage (in-memory for demo)
 let currentUser: User | null = null;
@@ -53,9 +54,15 @@ export const authService = {
     await new Promise(resolve => setTimeout(resolve, 300));
 
     const pseudoEmail = `${address.toLowerCase()}@wallet.local`;
+    let displayName = address.slice(0, 6) + '...' + address.slice(-4);
+    try {
+      const ens = await resolveEnsName(address as `0x${string}`);
+      if (ens) displayName = ens;
+    } catch {}
+
     const user: User = {
       id: Math.random().toString(36).substring(7),
-      name: address.slice(0, 6) + '...' + address.slice(-4),
+      name: displayName,
       email: pseudoEmail,
       avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${address}`,
       walletAddress: address,

@@ -76,5 +76,16 @@ export const walletService = {
     const account = getAccount(wagmiConfig);
     return account.status === 'connected';
   },
+
+  getCurrentProvider(): WalletProviderType | null {
+    const connections = getConnections(wagmiConfig);
+    const active = connections[0];
+    if (!active) return null;
+    const id = active.connector?.id?.toLowerCase?.() || active.connector?.name?.toLowerCase?.() || '';
+    if (id.includes('meta')) return 'metamask';
+    if (id.includes('coinbase')) return 'coinbase';
+    if (id.includes('walletconnect')) return 'farcaster';
+    return null;
+  },
 };
 

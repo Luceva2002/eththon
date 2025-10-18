@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { authService } from '@/lib/auth-service';
 import { walletService } from '@/lib/wallet-service';
 
@@ -12,6 +14,7 @@ export default function SignUpPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState<'metamask' | 'coinbase' | 'farcaster' | null>(null);
   const [error, setError] = useState('');
+  const [nickname, setNickname] = useState('');
 
   const connectAndRegister = async (provider: 'metamask' | 'coinbase' | 'farcaster') => {
     setError('');
@@ -19,7 +22,15 @@ export default function SignUpPage() {
     try {
       const { address } = await walletService.connect(provider);
       await authService.signInWithWallet(address);
-      router.push('/');
+      if (nickname) {
+        await authService.updateUser({ name: nickname });
+      }
+      // Apri pagina di registrazione del wallet in nuova scheda
+      if (provider === 'metamask') window.open('https://metamask.io/download/', '_blank');
+      if (provider === 'coinbase') window.open('https://www.coinbase.com/wallet', '_blank');
+      if (provider === 'farcaster') window.open('https://walletconnect.com/', '_blank');
+      // Chiedi nickname la prima volta: reindirizza al profilo per confermarlo
+      router.push('/profile');
     } catch (err) {
       setError('Errore durante la connessione del wallet');
       console.error(err);
@@ -44,7 +55,12 @@ export default function SignUpPage() {
             <CardDescription>Crea il tuo profilo collegando un wallet</CardDescription>
           </CardHeader>
 
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="nickname">Nickname</Label>
+              <Input id="nickname" placeholder="es. alice.eth" value={nickname} onChange={(e) => setNickname(e.target.value)} />
+              <p className="text-xs text-muted-foreground">Usa il tuo ENS se disponibile, sarà mostrato al posto dell&apos;indirizzo.</p>
+            </div>
             <Button className="w-full" variant="secondary" onClick={() => connectAndRegister('metamask')} disabled={isLoading !== null}>
               {isLoading === 'metamask' ? 'Connessione MetaMask...' : 'Registrati con MetaMask'}
             </Button>

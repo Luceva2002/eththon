@@ -22,7 +22,10 @@ export function NavBar() {
   const [user, setUser] = useState<UserType | null>(null);
 
   useEffect(() => {
-    setUser(authService.getCurrentUser());
+    const sync = () => setUser(authService.getCurrentUser());
+    sync();
+    const i = setInterval(sync, 500); // semplice polling per riflettere login/logout immediato
+    return () => clearInterval(i);
   }, []);
 
   const handleDisconnect = async () => {
