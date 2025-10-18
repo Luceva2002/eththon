@@ -1,19 +1,24 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import Image from 'next/image';
-import { usePathname, useRouter } from 'next/navigation';
-import { Wallet } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { authService } from '@/lib/auth-service';
-import { walletService } from '@/lib/wallet-service';
-import { useEffect, useState } from 'react';
-import { User as UserType } from '@/lib/types';
+import Link from "next/link";
+import Image from "next/image";
+import { usePathname, useRouter } from "next/navigation";
+import { Wallet } from "@coinbase/onchainkit/wallet";
+import { Button } from "@/components/ui/button";
+import { authService } from "@/lib/auth-service";
+import { walletService } from "@/lib/wallet-service";
+import { useEffect, useState } from "react";
+import { useAccount } from "wagmi";
+import { User as UserType } from "@/lib/types";
 
 export function NavBar() {
   const pathname = usePathname();
   const router = useRouter();
   const [user, setUser] = useState<UserType | null>(null);
+  const { address, isConnected } = useAccount();
+
+  const walletConnected = isConnected;
+  const userAddress = address;
 
   useEffect(() => {
     const sync = () => setUser(authService.getCurrentUser());
@@ -22,18 +27,20 @@ export function NavBar() {
     return () => clearInterval(i);
   }, []);
 
+  // Note: routing/redirect logic is handled on the sign-in page.
+
   const handleDisconnect = async () => {
     try {
       await walletService.disconnect();
     } finally {
       await authService.signOut();
       setUser(null);
-      router.push('/sign-in');
+      router.push("/sign-in");
     }
   };
 
   // Don't show navbar on auth pages
-  if (pathname?.startsWith('/sign-')) {
+  if (pathname?.startsWith("/sign-")) {
     return null;
   }
 
@@ -42,8 +49,15 @@ export function NavBar() {
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Link href="/" className="flex items-center gap-2">
-            <Image src="/logo.png" alt="Ethton" width={28} height={28} priority className="rounded-md" />
-            <span className="text-xl font-bold text-primary">Ethton</span>
+            <Image
+              src="/logo.png"
+              alt="SplitCast"
+              width={28}
+              height={28}
+              priority
+              className="rounded-md"
+            />
+            <span className="text-xl font-bold text-primary">SplitCast</span>
           </Link>
         </div>
 
@@ -51,12 +65,11 @@ export function NavBar() {
           {user ? (
             <div className="flex items-center gap-2">
               <Link href="/profile">
-                <Button size="sm" variant="ghost">Profilo</Button>
+                <Button size="sm" variant="ghost">
+                  Profilo
+                </Button>
               </Link>
-              <Button size="sm" variant="outline" onClick={handleDisconnect}>
-                <Wallet className="h-4 w-4" />
-                Disconnetti
-              </Button>
+              <Wallet />
             </div>
           ) : (
             <Link href="/sign-in">
@@ -71,4 +84,3 @@ export function NavBar() {
     </nav>
   );
 }
-
