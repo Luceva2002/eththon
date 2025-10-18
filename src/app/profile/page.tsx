@@ -2,11 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Wallet, Mail, User as UserIcon, Check, X } from 'lucide-react';
+import { Mail, User as UserIcon, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import { authService } from '@/lib/auth-service';
 import { walletService } from '@/lib/wallet-service';
 import { WalletConnectButton } from '@/components/wallet-connect-button';
@@ -19,6 +18,7 @@ export default function ProfilePage() {
   const [isConnected, setIsConnected] = useState(false);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [ensName, setEnsName] = useState<string | null>(null);
+  const [isSwitching, setIsSwitching] = useState<'metamask' | 'coinbase' | 'farcaster' | null>(null);
 
   useEffect(() => {
     const currentUser = authService.getCurrentUser();
@@ -61,6 +61,18 @@ export default function ProfilePage() {
         const name = await resolveEnsName(address as `0x${string}`);
         setEnsName(name);
       } catch {}
+    }
+  };
+
+  const switchProvider = async (provider: 'metamask' | 'coinbase' | 'farcaster') => {
+    setIsSwitching(provider);
+    try {
+      const { address } = await walletService.connect(provider);
+      await handleWalletConnect(address);
+    } catch (e) {
+      console.error('Switch provider error', e);
+    } finally {
+      setIsSwitching(null);
     }
   };
 
@@ -122,112 +134,49 @@ export default function ProfilePage() {
         </CardContent>
       </Card>
 
-      {/* Wallet Connection Card */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Wallet Crypto</CardTitle>
-              <CardDescription>
-                Connetti il tuo wallet per pagamenti in criptovaluta
-              </CardDescription>
-            </div>
-            {isConnected ? (
-              <Badge variant="default" className="gap-1">
-                <Check className="h-3 w-3" />
-                Connesso
-              </Badge>
-            ) : (
-              <Badge variant="outline">Non connesso</Badge>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center gap-3 p-4 rounded-lg border bg-muted/30">
-            <Wallet className="h-8 w-8 text-primary" />
-            <div className="flex-1">
-              {isConnected && user.walletAddress ? (
-                <>
-                  <p className="text-sm font-medium mb-1">Indirizzo wallet</p>
-                  <p className="text-xs font-mono text-muted-foreground">
-                    {user.walletAddress.slice(0, 12)}...{user.walletAddress.slice(-10)}
-                  </p>
-                  {ensName && (
-                    <p className="text-xs text-muted-foreground mt-1">ENS: {ensName}</p>
-                  )}
-                </>
-              ) : (
-                <>
-                  <p className="text-sm font-medium mb-1">Nessun wallet connesso</p>
-                  <p className="text-xs text-muted-foreground">
-                    Connetti un wallet per abilitare i pagamenti crypto
-                  </p>
-                </>
-              )}
-            </div>
-          </div>
-
-          <div className="flex gap-2">
-            {isConnected ? (
-              <>
-                <Button
-                  variant="outline"
-                  onClick={handleDisconnect}
-                  disabled={isDisconnecting}
-                  className="flex-1"
-                >
-                  <X className="h-4 w-4" />
-                  {isDisconnecting ? 'Disconnessione...' : 'Disconnetti'}
-                </Button>
-                <Button variant="secondary" disabled className="flex-1">
-                  Riconnetti
-                </Button>
-              </>
-            ) : (
-              <WalletConnectButton 
-                onConnect={handleWalletConnect}
-                variant="default"
-                size="default"
-              />
-            )}
-          </div>
-
-          <div className="pt-4 border-t">
-            <h4 className="text-sm font-medium mb-2">Informazioni</h4>
-            <ul className="text-sm text-muted-foreground space-y-1">
-              <li>• I pagamenti crypto sono attualmente in versione demo</li>
-              <li>• Puoi connettere/disconnettere il wallet in qualsiasi momento</li>
-              <li>• Il tuo indirizzo wallet è visibile solo a te</li>
-            </ul>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Preferences Card */}
+      {/* Wallet gestione provider */}
       <Card className="mt-6">
         <CardHeader>
-          <CardTitle>Preferenze</CardTitle>
-          <CardDescription>
-            Personalizza la tua esperienza
-          </CardDescription>
+          <CardTitle>Wallet</CardTitle>
+          <CardDescription>Connetti/switcha tra MetaMask, Coinbase (Base) e Farcaster</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
+        <CardContent className="space-y-4">
+          <div className="p-4 rounded-lg border bg-muted/30">
+            {isConnected && user.walletAddress ? (
               <div>
-                <p className="font-medium">Valuta predefinita</p>
-                <p className="text-sm text-muted-foreground">EUR</p>
+                <p className="text-sm">Address</p>
+                <p className="text-xs font-mono text-muted-foreground">
+                  {user.walletAddress.slice(0, 12)}...{user.walletAddress.slice(-10)}
+                </p>
+                {ensName && <p className="text-xs text-muted-foreground mt-1">ENS: {ensName}</p>}
               </div>
-              <Button variant="outline" size="sm">Modifica</Button>
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium">Notifiche</p>
-                <p className="text-sm text-muted-foreground">Attive</p>
-              </div>
-              <Button variant="outline" size="sm">Gestisci</Button>
-            </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">Nessun wallet connesso</p>
+            )}
           </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <Button variant="secondary" onClick={() => switchProvider('metamask')} disabled={!!isSwitching}>
+              {isSwitching === 'metamask' ? 'Connessione…' : 'MetaMask'}
+            </Button>
+            <Button variant="outline" onClick={() => switchProvider('coinbase')} disabled={!!isSwitching}>
+              {isSwitching === 'coinbase' ? 'Connessione…' : 'Coinbase (Base)'}
+            </Button>
+            <Button variant="outline" onClick={() => switchProvider('farcaster')} disabled={!!isSwitching}>
+              {isSwitching === 'farcaster' ? 'Connessione…' : 'Farcaster (WalletConnect)'}
+            </Button>
+          </div>
+
+          {isConnected ? (
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={handleDisconnect} disabled={isDisconnecting} className="flex-1">
+                <X className="h-4 w-4" />
+                {isDisconnecting ? 'Disconnessione…' : 'Disconnetti'}
+              </Button>
+            </div>
+          ) : (
+            <WalletConnectButton onConnect={handleWalletConnect} />
+          )}
         </CardContent>
       </Card>
     </div>

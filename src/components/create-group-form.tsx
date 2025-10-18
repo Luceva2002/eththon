@@ -14,7 +14,7 @@ export function CreateGroupForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [groupName, setGroupName] = useState('');
   const [currency, setCurrency] = useState('EUR');
-  const [members, setMembers] = useState<string[]>(['']);
+  const [members, setMembers] = useState<string[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const addMemberField = () => {
@@ -42,10 +42,7 @@ export function CreateGroupForm() {
       newErrors.currency = 'La valuta è obbligatoria';
     }
 
-    const validMembers = members.filter(m => m.trim());
-    if (validMembers.length === 0) {
-      newErrors.members = 'Aggiungi almeno un membro';
-    }
+    // Membri opzionali
 
     // Validate email format
     members.forEach((member, index) => {
@@ -86,7 +83,7 @@ export function CreateGroupForm() {
         <CardHeader>
           <CardTitle>Crea un nuovo gruppo</CardTitle>
           <CardDescription>
-            Aggiungi i dettagli del gruppo e invita i membri
+            Crea la stanza e invita gli amici in seguito
           </CardDescription>
         </CardHeader>
 
@@ -96,7 +93,7 @@ export function CreateGroupForm() {
             <Label htmlFor="groupName">Nome del gruppo *</Label>
             <Input
               id="groupName"
-              placeholder="es. Weekend in montagna"
+              placeholder="Visita a Roma, Aperitivo, Viaggio..."
               value={groupName}
               onChange={(e) => setGroupName(e.target.value)}
               aria-invalid={!!errors.groupName}
@@ -128,30 +125,28 @@ export function CreateGroupForm() {
             )}
           </div>
 
-          {/* Members */}
+          {/* Members (opzionale) */}
           <div className="space-y-2">
-            <Label>Membri del gruppo</Label>
+            <Label>Membri del gruppo (opzionale)</Label>
             <div className="space-y-2">
               {members.map((member, index) => (
                 <div key={index} className="flex gap-2">
                   <Input
-                    placeholder="email@esempio.com"
+                    placeholder="ens o email (es. alice.eth o email@esempio.com)"
                     value={member}
                     onChange={(e) => updateMember(index, e.target.value)}
                     aria-label={`Email membro ${index + 1}`}
                     aria-invalid={!!errors[`member_${index}`]}
                   />
-                  {members.length > 1 && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      onClick={() => removeMemberField(index)}
-                      aria-label="Rimuovi membro"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  )}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => removeMemberField(index)}
+                    aria-label="Rimuovi membro"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
                 </div>
               ))}
             </div>
@@ -163,11 +158,8 @@ export function CreateGroupForm() {
               className="w-full mt-2"
             >
               <Plus className="h-4 w-4" />
-              Aggiungi membro
+              Aggiungi membro (opzionale)
             </Button>
-            {errors.members && (
-              <p className="text-sm text-red-600">{errors.members}</p>
-            )}
           </div>
 
           {errors.submit && (

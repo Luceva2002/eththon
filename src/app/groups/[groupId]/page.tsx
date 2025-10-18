@@ -69,6 +69,8 @@ export default function GroupDetailPage() {
         to: computedMembers.find(m => m.userId === x.toUserId)?.name || 'Sconosciuto',
         amount: x.amount,
       })));
+      // default pagatore = primo membro (creatore)
+      if (!paidBy && computedMembers.length > 0) setPaidBy(computedMembers[0].userId);
     } catch (error) {
       console.error('Failed to load group:', error);
     } finally {

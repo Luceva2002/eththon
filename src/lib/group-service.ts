@@ -2,6 +2,8 @@
 // TODO: Replace with real API calls to backend
 
 import { Group, Expense, Settlement } from './types';
+import { authService } from './auth-service';
+import { resolveEnsName } from './ens-service';
 
 // Mock data storage
 const mockGroups: Group[] = [
@@ -59,16 +61,40 @@ export const groupService = {
   async createGroup(name: string, currency: string, members: string[]): Promise<Group> {
     await new Promise(resolve => setTimeout(resolve, 500));
     
+    // Creator as first member
+    const currentUser = authService.getCurrentUser();
+    let creatorName = currentUser?.name || 'Creator';
+    let creatorEmail = currentUser?.email || '';
+    if (currentUser?.walletAddress) {
+      try {
+        const ens = await resolveEnsName(currentUser.walletAddress as `0x${string}`);
+        if (ens) creatorName = ens;
+        creatorEmail = creatorEmail || `${(ens || currentUser.walletAddress).toString()}@wallet`;
+      } catch {}
+    }
+
+    const memberRecords = [
+      {
+        userId: currentUser?.id || Math.random().toString(36).substring(7),
+        name: creatorName,
+        email: creatorEmail,
+        balance: 0,
+      },
+      ...members
+        .filter((m) => m.trim())
+        .map((identifier) => ({
+          userId: Math.random().toString(36).substring(7),
+          name: identifier.trim(), // supporta ENS/nickname/email
+          email: identifier.includes('@') ? identifier : '',
+          balance: 0,
+        })),
+    ];
+
     const newGroup: Group = {
       id: Math.random().toString(36).substring(7),
       name,
       currency,
-      members: members.map(email => ({
-        userId: Math.random().toString(36).substring(7),
-        name: email.split('@')[0],
-        email,
-        balance: 0,
-      })),
+      members: memberRecords,
       createdAt: new Date(),
       totalOwed: 0,
       totalToReceive: 0,
