@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { authService } from '@/lib/auth-service';
 import { walletService } from '@/lib/wallet-service';
+import { Wallet } from '@coinbase/onchainkit/wallet';
 
 export default function SignInPage() {
   const router = useRouter();
@@ -58,21 +59,8 @@ export default function SignInPage() {
               <Input id="nickname" placeholder="es. alice.eth" value={nickname} onChange={(e) => setNickname(e.target.value)} />
               <p className="text-xs text-muted-foreground">Se hai ENS, puoi usare il tuo dominio come nickname.</p>
             </div>
-            <Button className="w-full" variant="secondary" onClick={() => connectAndSignIn('metamask')} disabled={isLoading !== null}>
-              {isLoading === 'metamask' ? 'Connessione MetaMask...' : 'Accedi con MetaMask'}
-            </Button>
-
-            <Button className="w-full" variant="outline" onClick={() => connectAndSignIn('coinbase')} disabled={isLoading !== null}>
-              {isLoading === 'coinbase' ? 'Connessione Coinbase...' : 'Accedi con Coinbase Wallet'}
-            </Button>
-
-            <Button className="w-full" variant="outline" onClick={() => connectAndSignIn('farcaster')} disabled={isLoading !== null}>
-              {isLoading === 'farcaster' ? 'Connessione Farcaster...' : 'Accedi con Farcaster (WalletConnect)'}
-            </Button>
-
-            {error && <p className="text-sm text-red-600">{error}</p>}
+            <Wallet />
           </CardContent>
-
           <CardFooter className="flex flex-col gap-2">
             <p className="text-sm text-center text-muted-foreground">
               Non hai un wallet?{' '}

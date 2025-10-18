@@ -3,6 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { NavBar } from "@/components/navbar";
 import { Providers } from "@/components/providers";
+import "@coinbase/onchainkit/styles.css";
+import RootProvider from "@/components/ui/rootProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -16,7 +18,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Ethton - Bill Splitting Made Easy",
-  description: "Gestisci le spese di gruppo con amici e familiari. Dividi le spese in modo semplice e veloce.",
+  description:
+    "Gestisci le spese di gruppo con amici e familiari. Dividi le spese in modo semplice e veloce.",
   icons: {
     icon: "/logo.png",
     shortcut: "/logo.png",
@@ -34,10 +37,10 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <Providers>
+        <RootProvider>
           <NavBar />
           {children}
-        </Providers>
+        </RootProvider>
       </body>
     </html>
   );
