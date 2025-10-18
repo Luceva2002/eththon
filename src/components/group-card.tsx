@@ -1,9 +1,13 @@
+'use client';
 import Link from 'next/link';
 import { Users, ArrowRight } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Group } from '@/lib/types';
+import { authService } from '@/lib/auth-service';
+import { useEffect, useState } from 'react';
+import { groupService } from '@/lib/group-service';
 import { StatChip } from './stat-chip';
 
 interface GroupCardProps {
@@ -11,6 +15,21 @@ interface GroupCardProps {
 }
 
 export function GroupCard({ group }: GroupCardProps) {
+  const me = authService.getCurrentUser();
+  const [myReceive, setMyReceive] = useState(0);
+  const [myOwe, setMyOwe] = useState(0);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const res = await groupService.getMyBalanceForGroup(group.id, me?.name);
+      if (mounted) {
+        setMyReceive(res.receive);
+        setMyOwe(res.owe);
+      }
+    })();
+    return () => { mounted = false; };
+  }, [group.id, me?.name]);
   return (
     <Card className="hover:shadow-lg transition-shadow">
       <CardHeader>
@@ -30,13 +49,13 @@ export function GroupCard({ group }: GroupCardProps) {
         <div className="flex gap-3">
           <StatChip
             label="Ti devono"
-            amount={group.totalToReceive}
+            amount={myReceive}
             currency={group.currency}
             variant="positive"
           />
           <StatChip
             label="Devi"
-            amount={group.totalOwed}
+            amount={myOwe}
             currency={group.currency}
             variant="negative"
           />

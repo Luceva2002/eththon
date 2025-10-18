@@ -37,8 +37,19 @@ export default function HomePage() {
     }
   };
 
-  const totalOwed = groups.reduce((sum, group) => sum + group.totalOwed, 0);
-  const totalToReceive = groups.reduce((sum, group) => sum + group.totalToReceive, 0);
+  // Calcola i TUOI totali personali (non i totali del gruppo)
+  const user = authService.getCurrentUser();
+  const myNickname = user?.name;
+  
+  const totalOwed = groups.reduce((sum, group) => {
+    const myMember = group.members.find(m => m.userId === myNickname);
+    return sum + Math.max(0, -(myMember?.balance ?? 0)); // Quanto DEVI
+  }, 0);
+  
+  const totalToReceive = groups.reduce((sum, group) => {
+    const myMember = group.members.find(m => m.userId === myNickname);
+    return sum + Math.max(0, myMember?.balance ?? 0); // Quanto TI DEVONO
+  }, 0);
 
   if (isLoading) {
     return (

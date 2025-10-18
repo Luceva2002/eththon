@@ -3,6 +3,7 @@
 
 import { User } from './types';
 import { resolveEnsName } from './ens-service';
+import { supabase, ProfileRow } from './supabase-client';
 
 // Simulated user storage (in-memory for demo)
 let currentUser: User | null = null;
@@ -68,6 +69,20 @@ export const authService = {
       walletAddress: address,
     };
 
+    // Upsert profilo su Supabase (nickname + wallet)
+    try {
+      const profile: ProfileRow = {
+        wallet_address: address.toLowerCase(),
+        nickname: displayName,
+      };
+      const { error } = await supabase
+        .from('profiles')
+        .upsert(profile, { onConflict: 'wallet_address' });
+      if (error) console.warn('Supabase upsert profile error:', error.message);
+    } catch (e) {
+      console.warn('Supabase not configured or profiles table missing:', e);
+    }
+
     currentUser = user;
     if (typeof window !== 'undefined') {
       localStorage.setItem('user', JSON.stringify(user));
@@ -105,6 +120,18 @@ export const authService = {
     
     if (typeof window !== 'undefined') {
       localStorage.setItem('user', JSON.stringify(currentUser));
+    }
+
+    // Aggiorna nickname su Supabase se presente
+    try {
+      if (updates.name && currentUser.walletAddress) {
+        const { error } = await supabase
+          .from('profiles')
+          .upsert({ wallet_address: currentUser.walletAddress.toLowerCase(), nickname: updates.name });
+        if (error) console.warn('Supabase update profile error:', error.message);
+      }
+    } catch (e) {
+      console.warn('Supabase update profile skipped:', e);
     }
     
     return currentUser;

@@ -28,7 +28,7 @@ ethton/
 ├── src/
 │   ├── app/                    # Next.js App Router pages
 │   │   ├── sign-in/           # Pagina di login
-│   │   ├── sign-up/           # Pagina di registrazione
+│   │   ├── sign-in/           # Pagina di accesso
 │   │   ├── profile/           # Profilo utente
 │   │   ├── groups/            # Pagine dei gruppi
 │   │   │   ├── new/          # Crea nuovo gruppo
@@ -90,7 +90,7 @@ npm start
 |-------|-------------|--------------|
 | `/` | Home/Dashboard | Mostra tutti i gruppi dell'utente con statistiche |
 | `/sign-in` | Login | Form di accesso con email/password |
-| `/sign-up` | Registrazione | Form di registrazione + connessione wallet |
+| `/sign-in` | Accesso | Connessione wallet e nickname |
 | `/profile` | Profilo | Visualizza e gestisci info utente e wallet |
 | `/groups/new` | Crea Gruppo | Form per creare un nuovo gruppo |
 | `/groups/[id]` | Dettaglio Gruppo | Visualizza membri, spese e saldi |

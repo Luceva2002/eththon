@@ -42,12 +42,10 @@ export function CreateGroupForm() {
       newErrors.currency = 'La valuta è obbligatoria';
     }
 
-    // Membri opzionali
-
-    // Validate email format
+    // Membri opzionali: nickname/ENS, nessuna validazione email
     members.forEach((member, index) => {
-      if (member.trim() && !member.includes('@')) {
-        newErrors[`member_${index}`] = 'Email non valida';
+      if (member.length > 40) {
+        newErrors[`member_${index}`] = 'Nickname troppo lungo';
       }
     });
 
@@ -71,7 +69,8 @@ export function CreateGroupForm() {
       router.push(`/groups/${group.id}`);
     } catch (error) {
       console.error('Failed to create group:', error);
-      setErrors({ submit: 'Errore nella creazione del gruppo' });
+      const message = error instanceof Error ? error.message : 'Errore nella creazione del gruppo';
+      setErrors({ submit: message });
     } finally {
       setIsLoading(false);
     }
@@ -132,7 +131,7 @@ export function CreateGroupForm() {
               {members.map((member, index) => (
                 <div key={index} className="flex gap-2">
                   <Input
-                    placeholder="ens o email (es. alice.eth o email@esempio.com)"
+                    placeholder="nickname o ENS (es. alice.eth)"
                     value={member}
                     onChange={(e) => updateMember(index, e.target.value)}
                     aria-label={`Email membro ${index + 1}`}

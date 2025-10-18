@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Plus, Users, Receipt, DollarSign, Calendar, Link as LinkIcon } from 'lucide-react';
+import { ArrowLeft, Plus, Users, Receipt, DollarSign, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { authService } from '@/lib/auth-service';
 import { groupService } from '@/lib/group-service';
 import { Group, Expense } from '@/lib/types';
+// import { walletService } from '@/lib/wallet-service';
 import { StatChip } from '@/components/stat-chip';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -31,6 +32,9 @@ export default function GroupDetailPage() {
   const [paidBy, setPaidBy] = useState('');
   const [splitBetween, setSplitBetween] = useState<string[]>([]);
   const [inviteUrl, setInviteUrl] = useState('');
+  const [paying, setPaying] = useState<string | null>(null);
+  const [myReceive, setMyReceive] = useState(0);
+  const [myOwe, setMyOwe] = useState(0);
 
   useEffect(() => {
     const user = authService.getCurrentUser();
@@ -63,7 +67,8 @@ export default function GroupDetailPage() {
       // calcola saldi e suggerimenti
       const computedMembers = groupService.computeBalances(groupData, expensesData);
       setGroup({ ...groupData, members: computedMembers });
-      const s = groupService.computeSettlements({ ...groupData, members: computedMembers }, expensesData);
+      const payments = await groupService.getGroupPayments(groupId);
+      const s = groupService.computeSettlementsWithPayments({ ...groupData, members: computedMembers }, expensesData, payments);
       setSettlements(s.map(x => ({
         from: computedMembers.find(m => m.userId === x.fromUserId)?.name || 'Sconosciuto',
         to: computedMembers.find(m => m.userId === x.toUserId)?.name || 'Sconosciuto',
@@ -71,6 +76,17 @@ export default function GroupDetailPage() {
       })));
       // default pagatore = primo membro (creatore)
       if (!paidBy && computedMembers.length > 0) setPaidBy(computedMembers[0].userId);
+
+      // leggi i miei saldi da Supabase
+      const me = authService.getCurrentUser();
+      if (me) {
+        const mine = await groupService.getMyBalanceForGroup(groupId, me.name);
+        setMyReceive(mine.receive);
+        setMyOwe(mine.owe);
+      } else {
+        setMyReceive(0);
+        setMyOwe(0);
+      }
     } catch (error) {
       console.error('Failed to load group:', error);
     } finally {
@@ -82,6 +98,27 @@ export default function GroupDetailPage() {
     if (!group) return;
     const url = groupService.createInviteLink(group.id);
     setInviteUrl(url);
+  };
+
+  const handleSettlePayment = async (fromNickname: string, toNickname: string, amount: number) => {
+    if (!group) return;
+    setPaying(`${fromNickname}->${toNickname}`);
+    try {
+      // On-chain: opzionale invio nativo (solo demo UI) - qui non inviamo realmente
+      // Persisti il pagamento su Supabase per riflettersi nei saldi
+      await groupService.recordPayment({
+        group_id: group.id,
+        from_nickname: fromNickname,
+        to_nickname: toNickname,
+        amount_fiat: amount,
+        currency: group.currency,
+      });
+      await loadGroupData();
+    } catch (e) {
+      console.error('record payment failed', e);
+    } finally {
+      setPaying(null);
+    }
   };
 
   const handleAddExpense = async () => {
@@ -242,13 +279,13 @@ export default function GroupDetailPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <StatChip
             label="Ti devono in totale"
-            amount={group.totalToReceive}
+            amount={myReceive}
             currency={group.currency}
             variant="positive"
           />
           <StatChip
             label="Devi in totale"
-            amount={group.totalOwed}
+            amount={myOwe}
             currency={group.currency}
             variant="negative"
           />
@@ -339,9 +376,14 @@ export default function GroupDetailPage() {
                   ) : (
                     <div className="space-y-2">
                       {settlements.map((s, idx) => (
-                        <div key={idx} className="flex justify-between text-sm">
+                        <div key={idx} className="flex items-center justify-between text-sm gap-2">
                           <span>{s.from} → {s.to}</span>
-                          <span className="font-medium">{formatCurrency(s.amount, group.currency)}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{formatCurrency(s.amount, group.currency)}</span>
+                            <Button size="sm" variant="secondary" disabled={paying === `${s.from}->${s.to}`} onClick={() => handleSettlePayment(s.from, s.to, s.amount)}>
+                              {paying === `${s.from}->${s.to}` ? 'Registrazione...' : 'Segna pagamento'}
+                            </Button>
+                          </div>
                         </div>
                       ))}
                     </div>

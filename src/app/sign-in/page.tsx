@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+// import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,29 +13,33 @@ import { Wallet } from '@coinbase/onchainkit/wallet';
 
 export default function SignInPage() {
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState<'metamask' | 'coinbase' | 'farcaster' | null>(null);
+  // const [isLoading, setIsLoading] = useState<'metamask' | 'coinbase' | 'farcaster' | null>(null);
   const [nickname, setNickname] = useState('');
   const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const connectAndSignIn = async (provider: 'metamask' | 'coinbase' | 'farcaster') => {
+  // Mantieni funzione disponibile se si reinseriranno i bottoni provider
+  // const connectAndSignIn = async (provider: 'metamask' | 'coinbase' | 'farcaster') => { ... };
+
+  const handleSubmit = async () => {
     setError('');
-    setIsLoading(provider);
+    setIsSubmitting(true);
     try {
-      const { address } = await walletService.connect(provider);
-      await authService.signInWithWallet(address);
+      const conn = walletService.getConnection();
+      if (!conn || !conn.address) {
+        setError('Connetti prima un wallet');
+        return;
+      }
+      await authService.signInWithWallet(conn.address);
       if (nickname) {
         await authService.updateUser({ name: nickname });
       }
       router.push('/');
-      // Apri la dapp/wallet in nuova scheda quando possibile
-      if (provider === 'metamask') window.open('https://metamask.app.link/', '_blank');
-      if (provider === 'coinbase') window.open('https://go.cb-w.com/', '_blank');
-      if (provider === 'farcaster') window.open('https://walletconnect.com/', '_blank');
-    } catch (err) {
-      setError('Errore durante la connessione del wallet');
-      console.error(err);
+    } catch (e) {
+      console.error(e);
+      setError('Errore durante il login');
     } finally {
-      setIsLoading(null);
+      setIsSubmitting(false);
     }
   };
 
@@ -56,16 +60,17 @@ export default function SignInPage() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="nickname">Nickname</Label>
+              <br />
+              <br />
               <Input id="nickname" placeholder="es. alice.eth" value={nickname} onChange={(e) => setNickname(e.target.value)} />
-              <p className="text-xs text-muted-foreground">Se hai ENS, puoi usare il tuo dominio come nickname.</p>
             </div>
             <Wallet />
           </CardContent>
           <CardFooter className="flex flex-col gap-2">
-            <p className="text-sm text-center text-muted-foreground">
-              Non hai un wallet?{' '}
-              <Link href="/sign-up" className="text-primary hover:underline font-medium">Crea un profilo</Link>
-            </p>
+            <Button className="w-full" onClick={handleSubmit} disabled={isSubmitting}>
+              {isSubmitting ? 'Accesso...' : 'Continua'}
+            </Button>
+            {error && <p className="text-sm text-red-600 text-center">{error}</p>}
           </CardFooter>
         </Card>
       </div>
