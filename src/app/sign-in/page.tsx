@@ -1,45 +1,52 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-// import Link from 'next/link';
+import { useAccount, useConnect } from 'wagmi';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { authService } from '@/lib/auth-service';
-import { walletService } from '@/lib/wallet-service';
-import { Wallet } from '@coinbase/onchainkit/wallet';
 
 export default function SignInPage() {
   const router = useRouter();
-  // const [isLoading, setIsLoading] = useState<'metamask' | 'coinbase' | 'farcaster' | null>(null);
+  const { address, isConnected } = useAccount();
+  const { connect, connectors, isPending } = useConnect();
   const [nickname, setNickname] = useState('');
   const [error, setError] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasSignedIn, setHasSignedIn] = useState(false);
 
-  // Mantieni funzione disponibile se si reinseriranno i bottoni provider
-  // const connectAndSignIn = async (provider: 'metamask' | 'coinbase' | 'farcaster') => { ... };
-
-  const handleSubmit = async () => {
-    setError('');
-    setIsSubmitting(true);
-    try {
-      const conn = walletService.getConnection();
-      if (!conn || !conn.address) {
-        setError('Connetti prima un wallet');
-        return;
-      }
-      await authService.signInWithWallet(conn.address);
-      if (nickname) {
-        await authService.updateUser({ name: nickname });
-      }
+  // Auto-redirect when wallet is connected and user has signed in
+  useEffect(() => {
+    if (isConnected && address && hasSignedIn) {
       router.push('/');
-    } catch (e) {
-      console.error(e);
-      setError('Errore durante il login');
-    } finally {
-      setIsSubmitting(false);
+    }
+  }, [isConnected, address, hasSignedIn, router]);
+
+  // Sign in when wallet connects
+  useEffect(() => {
+    if (isConnected && address && !hasSignedIn) {
+      (async () => {
+        try {
+          await authService.signInWithWallet(address);
+          if (nickname.trim()) {
+            await authService.updateUser({ name: nickname });
+          }
+          setHasSignedIn(true);
+        } catch (err) {
+          setError('Errore durante il login');
+          console.error(err);
+        }
+      })();
+    }
+  }, [isConnected, address, nickname, hasSignedIn]);
+
+  const handleConnect = (connectorId: string) => {
+    setError('');
+    const connector = connectors.find(c => c.id === connectorId);
+    if (connector) {
+      connect({ connector });
     }
   };
 
@@ -59,18 +66,38 @@ export default function SignInPage() {
 
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="nickname">Nickname</Label>
-              <br />
-              <br />
-              <Input id="nickname" placeholder="es. alice.eth" value={nickname} onChange={(e) => setNickname(e.target.value)} />
+              <Label htmlFor="nickname">Nickname (opzionale)</Label>
+              <Input
+                id="nickname"
+                placeholder="es. alice.eth"
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
+                disabled={isPending || isConnected}
+              />
+              <p className="text-xs text-muted-foreground">Se hai ENS, puoi usare il tuo dominio come nickname.</p>
             </div>
-            <Wallet />
+
+            <div className="space-y-2">
+              {connectors.map((connector) => (
+                <Button
+                  key={connector.id}
+                  className="w-full"
+                  variant={connector.id === 'metaMask' ? 'default' : 'outline'}
+                  onClick={() => handleConnect(connector.id)}
+                  disabled={isPending || isConnected}
+                >
+                  {isPending ? 'Connessione...' : `Connetti con ${connector.name}`}
+                </Button>
+              ))}
+            </div>
+
+            {error && <p className="text-sm text-red-600">{error}</p>}
           </CardContent>
+
           <CardFooter className="flex flex-col gap-2">
-            <Button className="w-full" onClick={handleSubmit} disabled={isSubmitting}>
-              {isSubmitting ? 'Accesso...' : 'Continua'}
-            </Button>
-            {error && <p className="text-sm text-red-600 text-center">{error}</p>}
+            <p className="text-sm text-center text-muted-foreground">
+              Usa il tuo wallet preferito per accedere
+            </p>
           </CardFooter>
         </Card>
       </div>

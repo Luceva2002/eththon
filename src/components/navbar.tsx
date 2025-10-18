@@ -5,12 +5,6 @@ import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { authService } from '@/lib/auth-service';
 import { walletService } from '@/lib/wallet-service';
 import { useEffect, useState } from 'react';
@@ -24,7 +18,7 @@ export function NavBar() {
   useEffect(() => {
     const sync = () => setUser(authService.getCurrentUser());
     sync();
-    const i = setInterval(sync, 500); // semplice polling per riflettere login/logout immediato
+    const i = setInterval(sync, 500);
     return () => clearInterval(i);
   }, []);
 
@@ -34,7 +28,7 @@ export function NavBar() {
     } finally {
       await authService.signOut();
       setUser(null);
-      router.refresh();
+      router.push('/sign-in');
     }
   };
 
@@ -49,7 +43,7 @@ export function NavBar() {
         <div className="flex items-center gap-3">
           <Link href="/" className="flex items-center gap-2">
             <Image src="/logo.png" alt="Ethton" width={28} height={28} priority className="rounded-md" />
-            <span className="text-xl font-bold text-primary">Splitcast</span>
+            <span className="text-xl font-bold text-primary">Ethton</span>
           </Link>
         </div>
 
@@ -61,53 +55,16 @@ export function NavBar() {
               </Link>
               <Button size="sm" variant="outline" onClick={handleDisconnect}>
                 <Wallet className="h-4 w-4" />
-                Disconnetti Wallet
+                Disconnetti
               </Button>
             </div>
           ) : (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button size="sm" variant="secondary">
-                  <Wallet className="h-4 w-4" />
-                  Connetti Wallet
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuItem onClick={async () => {
-                  try {
-                    const { address } = await walletService.connect('metamask');
-                    await authService.signInWithWallet(address);
-                    setUser(authService.getCurrentUser());
-                  } catch (e) {
-                    console.error(e);
-                  }
-                }} className="cursor-pointer">
-                  MetaMask
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={async () => {
-                  try {
-                    const { address } = await walletService.connect('coinbase');
-                    await authService.signInWithWallet(address);
-                    setUser(authService.getCurrentUser());
-                  } catch (e) {
-                    console.error(e);
-                  }
-                }} className="cursor-pointer">
-                  Coinbase Wallet
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={async () => {
-                  try {
-                    const { address } = await walletService.connect('farcaster');
-                    await authService.signInWithWallet(address);
-                    setUser(authService.getCurrentUser());
-                  } catch (e) {
-                    console.error(e);
-                  }
-                }} className="cursor-pointer">
-                  Farcaster (WalletConnect)
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <Link href="/sign-in">
+              <Button size="sm" variant="secondary">
+                <Wallet className="h-4 w-4" />
+                Connetti Wallet
+              </Button>
+            </Link>
           )}
         </div>
       </div>
