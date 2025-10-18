@@ -9,7 +9,7 @@ export default function RootProvider({
 }) {
   return (
     <OnchainKitProvider
-      apiKey="YOUR_API_KEY"
+      apiKey={process.env.NEXT_PUBLIC_ONCHAINKIT_API_KEY}
       chain={base}
       config={{
         appearance: {
@@ -21,9 +21,7 @@ export default function RootProvider({
         },
       }}
     >
-      <html>
-        <body>{children}</body>
-      </html>
+      {children}
     </OnchainKitProvider>
   );
 }

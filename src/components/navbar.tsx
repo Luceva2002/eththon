@@ -2,23 +2,16 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { Wallet } from "@coinbase/onchainkit/wallet";
 import { Button } from "@/components/ui/button";
 import { authService } from "@/lib/auth-service";
-import { walletService } from "@/lib/wallet-service";
 import { useEffect, useState } from "react";
-import { useAccount } from "wagmi";
 import { User as UserType } from "@/lib/types";
 
 export function NavBar() {
   const pathname = usePathname();
-  const router = useRouter();
   const [user, setUser] = useState<UserType | null>(null);
-  const { address, isConnected } = useAccount();
-
-  const walletConnected = isConnected;
-  const userAddress = address;
 
   useEffect(() => {
     const sync = () => setUser(authService.getCurrentUser());
@@ -26,18 +19,6 @@ export function NavBar() {
     const i = setInterval(sync, 500);
     return () => clearInterval(i);
   }, []);
-
-  // Note: routing/redirect logic is handled on the sign-in page.
-
-  const handleDisconnect = async () => {
-    try {
-      await walletService.disconnect();
-    } finally {
-      await authService.signOut();
-      setUser(null);
-      router.push("/sign-in");
-    }
-  };
 
   // Don't show navbar on auth pages
   if (pathname?.startsWith("/sign-")) {

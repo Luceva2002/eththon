@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { NavBar } from "@/components/navbar";
-import { Providers } from "@/components/providers";
 import "@coinbase/onchainkit/styles.css";
 import RootProvider from "@/components/ui/rootProvider";
 

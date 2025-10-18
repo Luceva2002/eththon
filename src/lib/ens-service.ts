@@ -13,7 +13,7 @@ export async function resolveEnsName(address: `0x${string}`): Promise<string | n
   try {
     const name = await client.getEnsName({ address });
     return name ?? null;
-  } catch (e) {
+  } catch {
     // Evita errori rumorosi in console su contesti senza rete/API key
     return null;
   }
@@ -23,7 +23,7 @@ export async function resolveEnsAddress(name: string): Promise<`0x${string}` | n
   try {
     const address = await client.getEnsAddress({ name });
     return address ?? null;
-  } catch (e) {
+  } catch {
     return null;
   }
 }
