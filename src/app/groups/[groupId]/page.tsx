@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Plus, Users, Receipt, DollarSign, Calendar } from 'lucide-react';
+import { ArrowLeft, Plus, Users, Receipt, DollarSign, Calendar, Link as LinkIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -13,6 +13,10 @@ import { authService } from '@/lib/auth-service';
 import { groupService } from '@/lib/group-service';
 import { Group, Expense } from '@/lib/types';
 import { StatChip } from '@/components/stat-chip';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { QRCodeSVG } from 'qrcode.react';
 
 export default function GroupDetailPage() {
   const params = useParams();
@@ -20,6 +24,13 @@ export default function GroupDetailPage() {
   const [group, setGroup] = useState<Group | null>(null);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [settlements, setSettlements] = useState<{ from: string; to: string; amount: number }[]>([]);
+  const [showAddExpense, setShowAddExpense] = useState(false);
+  const [description, setDescription] = useState('');
+  const [amount, setAmount] = useState('');
+  const [paidBy, setPaidBy] = useState('');
+  const [splitBetween, setSplitBetween] = useState<string[]>([]);
+  const [inviteUrl, setInviteUrl] = useState('');
 
   useEffect(() => {
     const user = authService.getCurrentUser();
@@ -48,11 +59,46 @@ export default function GroupDetailPage() {
       
       setGroup(groupData);
       setExpenses(expensesData);
+
+      // calcola saldi e suggerimenti
+      const computedMembers = groupService.computeBalances(groupData, expensesData);
+      setGroup({ ...groupData, members: computedMembers });
+      const s = groupService.computeSettlements({ ...groupData, members: computedMembers }, expensesData);
+      setSettlements(s.map(x => ({
+        from: computedMembers.find(m => m.userId === x.fromUserId)?.name || 'Sconosciuto',
+        to: computedMembers.find(m => m.userId === x.toUserId)?.name || 'Sconosciuto',
+        amount: x.amount,
+      })));
     } catch (error) {
       console.error('Failed to load group:', error);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const openInvite = () => {
+    if (!group) return;
+    const url = groupService.createInviteLink(group.id);
+    setInviteUrl(url);
+  };
+
+  const handleAddExpense = async () => {
+    if (!group) return;
+    const validAmount = parseFloat(amount);
+    if (!description.trim() || isNaN(validAmount) || validAmount <= 0 || !paidBy) return;
+    const membersToSplit = splitBetween.length ? splitBetween : group.members.map(m => m.userId);
+    await groupService.addExpense(group.id, {
+      description,
+      amount: validAmount,
+      paidBy,
+      splitBetween: membersToSplit,
+    });
+    setDescription('');
+    setAmount('');
+    setPaidBy('');
+    setSplitBetween([]);
+    setShowAddExpense(false);
+    await loadGroupData();
   };
 
   const formatDate = (date: Date) => {
@@ -111,14 +157,82 @@ export default function GroupDetailPage() {
           </div>
 
           <div className="flex gap-2">
-            <Button variant="outline">
-              <Users className="h-4 w-4" />
-              Invita
-            </Button>
-            <Button>
-              <Plus className="h-4 w-4" />
-              Aggiungi spesa
-            </Button>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline" onClick={openInvite}>
+                  <Users className="h-4 w-4" />
+                  Invita
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Invita nel gruppo</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Input readOnly value={inviteUrl} />
+                    <Button variant="secondary" onClick={() => navigator.clipboard.writeText(inviteUrl)}>Copia</Button>
+                  </div>
+                  <div className="flex justify-center py-4">
+                    {!!inviteUrl && <QRCodeSVG value={inviteUrl} size={180} />}
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={showAddExpense} onOpenChange={setShowAddExpense}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="h-4 w-4" />
+                  Aggiungi spesa
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Nuova spesa</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <Label>Descrizione</Label>
+                    <Input value={description} onChange={e => setDescription(e.target.value)} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Importo</Label>
+                    <Input type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Pagato da</Label>
+                    <select className="w-full h-10 rounded-md border px-3 bg-background" value={paidBy} onChange={e => setPaidBy(e.target.value)}>
+                      <option value="">Seleziona</option>
+                      {group.members.map(m => (
+                        <option key={m.userId} value={m.userId}>{m.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Dividi tra</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {group.members.map(m => {
+                        const checked = splitBetween.includes(m.userId);
+                        return (
+                          <label key={m.userId} className="flex items-center gap-2 text-sm">
+                            <input type="checkbox" checked={checked} onChange={(e) => {
+                              setSplitBetween(prev => e.target.checked ? [...prev, m.userId] : prev.filter(id => id !== m.userId));
+                            }} />
+                            {m.name}
+                          </label>
+                        );
+                      })}
+                    </div>
+                    <p className="text-xs text-muted-foreground">Se non selezioni nessuno, la spesa è divisa tra tutti</p>
+                  </div>
+                  <div className="flex justify-end gap-2 pt-2">
+                    <Button variant="outline" onClick={() => setShowAddExpense(false)}>Annulla</Button>
+                    <Button onClick={handleAddExpense}>Salva</Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
 
@@ -205,25 +319,31 @@ export default function GroupDetailPage() {
                 </Card>
               ))}
 
-              {/* Settle Up Section */}
+              {/* Settle Up Section con suggerimenti */}
               <Card className="bg-primary/5 border-primary/20">
                 <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="p-3 rounded-full bg-primary/10">
-                        <DollarSign className="h-6 w-6 text-primary" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold">Salda i conti</h3>
-                        <p className="text-sm text-muted-foreground">
-                          Registra un pagamento per saldare i debiti
-                        </p>
-                      </div>
+                  <div className="flex items-start gap-3 mb-4">
+                    <div className="p-3 rounded-full bg-primary/10">
+                      <DollarSign className="h-6 w-6 text-primary" />
                     </div>
-                    <Button variant="default">
-                      Salda
-                    </Button>
+                    <div>
+                      <h3 className="font-semibold">Salda i conti</h3>
+                      <p className="text-sm text-muted-foreground">Suggerimenti di rimborso</p>
+                    </div>
                   </div>
+
+                  {settlements.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">Tutti in pari 🎉</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {settlements.map((s, idx) => (
+                        <div key={idx} className="flex justify-between text-sm">
+                          <span>{s.from} → {s.to}</span>
+                          <span className="font-medium">{formatCurrency(s.amount, group.currency)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </>

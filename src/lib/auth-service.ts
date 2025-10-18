@@ -49,6 +49,26 @@ export const authService = {
     return user;
   },
 
+  async signInWithWallet(address: string): Promise<User> {
+    await new Promise(resolve => setTimeout(resolve, 300));
+
+    const pseudoEmail = `${address.toLowerCase()}@wallet.local`;
+    const user: User = {
+      id: Math.random().toString(36).substring(7),
+      name: address.slice(0, 6) + '...' + address.slice(-4),
+      email: pseudoEmail,
+      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${address}`,
+      walletAddress: address,
+    };
+
+    currentUser = user;
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('user', JSON.stringify(user));
+    }
+
+    return user;
+  },
+
   async signOut(): Promise<void> {
     currentUser = null;
     if (typeof window !== 'undefined') {

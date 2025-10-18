@@ -2,18 +2,16 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Home, User, LogOut, Menu } from 'lucide-react';
+import { Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { authService } from '@/lib/auth-service';
+import { walletService } from '@/lib/wallet-service';
 import { useEffect, useState } from 'react';
 import { User as UserType } from '@/lib/types';
 
@@ -26,9 +24,14 @@ export function NavBar() {
     setUser(authService.getCurrentUser());
   }, []);
 
-  const handleSignOut = async () => {
-    await authService.signOut();
-    router.push('/sign-in');
+  const handleDisconnect = async () => {
+    try {
+      await walletService.disconnect();
+    } finally {
+      await authService.signOut();
+      setUser(null);
+      router.refresh();
+    }
   };
 
   // Don't show navbar on auth pages
@@ -43,78 +46,64 @@ export function NavBar() {
           <Link href="/" className="text-xl font-bold text-primary">
             Ethton
           </Link>
-          
-          <div className="hidden md:flex gap-1">
-            <Link href="/">
-              <Button 
-                variant={pathname === '/' ? 'secondary' : 'ghost'}
-                size="sm"
-              >
-                <Home className="h-4 w-4" />
-                Home
-              </Button>
-            </Link>
-          </div>
         </div>
 
         <div className="flex items-center gap-2">
           {user ? (
+            <div className="flex items-center gap-2">
+              <Link href="/profile">
+                <Button size="sm" variant="ghost">Profilo</Button>
+              </Link>
+              <Button size="sm" variant="outline" onClick={handleDisconnect}>
+                <Wallet className="h-4 w-4" />
+                Disconnetti Wallet
+              </Button>
+            </div>
+          ) : (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                  <Avatar>
-                    <AvatarImage src={user.avatar} alt={user.name} />
-                    <AvatarFallback>
-                      {user.name.substring(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
+                <Button size="sm" variant="secondary">
+                  <Wallet className="h-4 w-4" />
+                  Connetti Wallet
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>
-                  <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium">{user.name}</p>
-                    <p className="text-xs text-muted-foreground">{user.email}</p>
-                  </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/profile" className="cursor-pointer">
-                    <User className="h-4 w-4" />
-                    Profilo
-                  </Link>
+                <DropdownMenuItem onClick={async () => {
+                  try {
+                    const { address } = await walletService.connect('metamask');
+                    await authService.signInWithWallet(address);
+                    setUser(authService.getCurrentUser());
+                  } catch (e) {
+                    console.error(e);
+                  }
+                }} className="cursor-pointer">
+                  MetaMask
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
-                  <LogOut className="h-4 w-4" />
-                  Esci
+                <DropdownMenuItem onClick={async () => {
+                  try {
+                    const { address } = await walletService.connect('coinbase');
+                    await authService.signInWithWallet(address);
+                    setUser(authService.getCurrentUser());
+                  } catch (e) {
+                    console.error(e);
+                  }
+                }} className="cursor-pointer">
+                  Coinbase Wallet
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={async () => {
+                  try {
+                    const { address } = await walletService.connect('farcaster');
+                    await authService.signInWithWallet(address);
+                    setUser(authService.getCurrentUser());
+                  } catch (e) {
+                    console.error(e);
+                  }
+                }} className="cursor-pointer">
+                  Farcaster (WalletConnect)
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          ) : (
-            <Link href="/sign-in">
-              <Button size="sm">Accedi</Button>
-            </Link>
           )}
-
-          {/* Mobile menu */}
-          <div className="md:hidden">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <Menu className="h-5 w-5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem asChild>
-                  <Link href="/" className="cursor-pointer">
-                    <Home className="h-4 w-4" />
-                    Home
-                  </Link>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
         </div>
       </div>
     </nav>

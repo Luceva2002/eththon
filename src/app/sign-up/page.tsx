@@ -4,50 +4,27 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { authService } from '@/lib/auth-service';
-import { WalletConnectButton } from '@/components/wallet-connect-button';
-import { Badge } from '@/components/ui/badge';
-import { Check } from 'lucide-react';
+import { walletService } from '@/lib/wallet-service';
 
 export default function SignUpPage() {
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [walletAddress, setWalletAddress] = useState('');
+  const [isLoading, setIsLoading] = useState<'metamask' | 'coinbase' | 'farcaster' | null>(null);
   const [error, setError] = useState('');
 
-  const handleWalletConnect = (address: string) => {
-    setWalletAddress(address);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const connectAndRegister = async (provider: 'metamask' | 'coinbase' | 'farcaster') => {
     setError('');
-
-    if (!name || !email || !password) {
-      setError('Compila tutti i campi obbligatori');
-      return;
-    }
-
-    if (password.length < 6) {
-      setError('La password deve essere di almeno 6 caratteri');
-      return;
-    }
-
-    setIsLoading(true);
+    setIsLoading(provider);
     try {
-      await authService.signUp(name, email, password, walletAddress);
+      const { address } = await walletService.connect(provider);
+      await authService.signInWithWallet(address);
       router.push('/');
     } catch (err) {
-      setError('Errore durante la registrazione');
+      setError('Errore durante la connessione del wallet');
       console.error(err);
     } finally {
-      setIsLoading(false);
+      setIsLoading(null);
     }
   };
 
@@ -64,98 +41,31 @@ export default function SignUpPage() {
         <Card>
           <CardHeader>
             <CardTitle>Registrati</CardTitle>
-            <CardDescription>
-              Crea un nuovo account per gestire le tue spese
-            </CardDescription>
+            <CardDescription>Crea il tuo profilo collegando un wallet</CardDescription>
           </CardHeader>
 
-          <form onSubmit={handleSubmit}>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Nome completo *</Label>
-                <Input
-                  id="name"
-                  type="text"
-                  placeholder="Mario Rossi"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  autoComplete="name"
-                  required
-                />
-              </div>
+          <CardContent className="space-y-3">
+            <Button className="w-full" variant="secondary" onClick={() => connectAndRegister('metamask')} disabled={isLoading !== null}>
+              {isLoading === 'metamask' ? 'Connessione MetaMask...' : 'Registrati con MetaMask'}
+            </Button>
 
-              <div className="space-y-2">
-                <Label htmlFor="email">Email *</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="tu@esempio.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  autoComplete="email"
-                  required
-                />
-              </div>
+            <Button className="w-full" variant="outline" onClick={() => connectAndRegister('coinbase')} disabled={isLoading !== null}>
+              {isLoading === 'coinbase' ? 'Connessione Coinbase...' : 'Registrati con Coinbase Wallet'}
+            </Button>
 
-              <div className="space-y-2">
-                <Label htmlFor="password">Password *</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  autoComplete="new-password"
-                  required
-                />
-                <p className="text-xs text-muted-foreground">
-                  Minimo 6 caratteri
-                </p>
-              </div>
+            <Button className="w-full" variant="outline" onClick={() => connectAndRegister('farcaster')} disabled={isLoading !== null}>
+              {isLoading === 'farcaster' ? 'Connessione Farcaster...' : 'Registrati con Farcaster (WalletConnect)'}
+            </Button>
 
-              <div className="space-y-2 pt-2">
-                <Label>Wallet Crypto (opzionale)</Label>
-                <div className="flex flex-col gap-2">
-                  {walletAddress ? (
-                    <div className="flex items-center gap-2 p-3 rounded-md bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-900">
-                      <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
-                      <span className="text-sm font-medium text-green-600 dark:text-green-400">
-                        Wallet connesso
-                      </span>
-                      <Badge variant="secondary" className="ml-auto text-xs">
-                        {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
-                      </Badge>
-                    </div>
-                  ) : (
-                    <WalletConnectButton 
-                      onConnect={handleWalletConnect}
-                      variant="outline"
-                    />
-                  )}
-                  <p className="text-xs text-muted-foreground">
-                    Connetti il tuo wallet per pagamenti crypto (puoi farlo anche dopo)
-                  </p>
-                </div>
-              </div>
+            {error && <p className="text-sm text-red-600">{error}</p>}
+          </CardContent>
 
-              {error && (
-                <p className="text-sm text-red-600">{error}</p>
-              )}
-            </CardContent>
-
-            <CardFooter className="flex flex-col gap-4">
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? 'Registrazione...' : 'Crea account'}
-              </Button>
-
-              <p className="text-sm text-center text-muted-foreground">
-                Hai già un account?{' '}
-                <Link href="/sign-in" className="text-primary hover:underline font-medium">
-                  Accedi
-                </Link>
-              </p>
-            </CardFooter>
-          </form>
+          <CardFooter className="flex flex-col gap-2">
+            <p className="text-sm text-center text-muted-foreground">
+              Hai già un profilo?{' '}
+              <Link href="/sign-in" className="text-primary hover:underline font-medium">Accedi</Link>
+            </p>
+          </CardFooter>
         </Card>
       </div>
     </div>

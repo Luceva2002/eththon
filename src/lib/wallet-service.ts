@@ -1,53 +1,80 @@
-// Mock wallet connection service
-// TODO: Replace with real Web3 provider (e.g., ethers.js, wagmi, RainbowKit)
+"use client";
 
+// Implementazione reale con Wagmi
 import { WalletConnection } from './types';
+import { wagmiConfig } from '@/lib/wagmi-config';
+import { base } from 'wagmi/chains';
+import { connect as wagmiConnect, disconnect as wagmiDisconnect, getAccount, getConnections, switchChain } from 'wagmi/actions';
+
+type WalletProviderType = 'metamask' | 'coinbase' | 'farcaster';
+
+function providerLabel(provider: WalletProviderType): string {
+  if (provider === 'metamask') return 'MetaMask';
+  if (provider === 'coinbase') return 'Coinbase Wallet';
+  return 'Farcaster (WalletConnect)';
+}
+
+function getConnectorByProvider(provider: WalletProviderType) {
+  const connectors = wagmiConfig.connectors ?? [];
+  if (provider === 'metamask') return connectors.find(c => c.id === 'metaMask' || c.name.toLowerCase().includes('metamask'));
+  if (provider === 'coinbase') return connectors.find(c => c.id === 'coinbaseWallet' || c.name.toLowerCase().includes('coinbase'));
+  return connectors.find(c => c.id === 'walletConnect' || c.name.toLowerCase().includes('walletconnect'));
+}
 
 export const walletService = {
-  async connect(): Promise<WalletConnection> {
-    // Mock wallet connection
-    await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate connection time
-    
-    // Generate a mock Ethereum address
-    const mockAddress = '0x' + Array.from({ length: 40 }, () => 
-      Math.floor(Math.random() * 16).toString(16)
-    ).join('');
-    
-    const connection: WalletConnection = {
-      address: mockAddress,
-      provider: 'MetaMask (Mock)',
-      connected: true,
-    };
-    
-    // Store connection state
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('walletConnection', JSON.stringify(connection));
+  async connect(provider: WalletProviderType = 'metamask'): Promise<WalletConnection> {
+    const connector = getConnectorByProvider(provider);
+    if (!connector) throw new Error(`Connector non trovato per ${provider}`);
+
+    // Connetti e forza/suggerisci chain Base
+    await wagmiConnect(wagmiConfig, { connector, chainId: base.id }).catch(async (err) => {
+      // Se il connector non supporta chainId diretto, prova switch dopo
+      console.warn('Fallback connect senza chainId:', err);
+      await wagmiConnect(wagmiConfig, { connector });
+    });
+
+    try {
+      await switchChain(wagmiConfig, { chainId: base.id });
+    } catch {
+      // Ignora se l'utente rifiuta o la chain non è disponibile
     }
-    
-    return connection;
+
+    const account = getAccount(wagmiConfig);
+    if (!account.address) throw new Error('Connessione wallet fallita');
+
+    return {
+      address: account.address,
+      provider: providerLabel(provider),
+      connected: account.status === 'connected',
+    };
   },
 
   async disconnect(): Promise<void> {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('walletConnection');
+    const connections = getConnections(wagmiConfig);
+    for (const c of connections) {
+      try {
+        await wagmiDisconnect(wagmiConfig, { connector: c.connector });
+      } catch (e) {
+        console.warn('Errore durante disconnect:', e);
+      }
     }
   },
 
   getConnection(): WalletConnection | null {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('walletConnection');
-      if (stored) {
-        return JSON.parse(stored);
-      }
+    const account = getAccount(wagmiConfig);
+    if (account?.address) {
+      return {
+        address: account.address,
+        provider: 'Wallet',
+        connected: account.status === 'connected',
+      };
     }
     return null;
   },
 
   isConnected(): boolean {
-    const connection = this.getConnection();
-    return connection?.connected ?? false;
+    const account = getAccount(wagmiConfig);
+    return account.status === 'connected';
   },
 };
 

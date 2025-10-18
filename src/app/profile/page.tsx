@@ -11,12 +11,14 @@ import { authService } from '@/lib/auth-service';
 import { walletService } from '@/lib/wallet-service';
 import { WalletConnectButton } from '@/components/wallet-connect-button';
 import { User } from '@/lib/types';
+import { resolveEnsName } from '@/lib/ens-service';
 
 export default function ProfilePage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
+  const [ensName, setEnsName] = useState<string | null>(null);
 
   useEffect(() => {
     const currentUser = authService.getCurrentUser();
@@ -26,6 +28,9 @@ export default function ProfilePage() {
     }
     setUser(currentUser);
     setIsConnected(walletService.isConnected());
+    if (currentUser.walletAddress) {
+      resolveEnsName(currentUser.walletAddress as `0x${string}`).then(setEnsName).catch(() => {});
+    }
   }, [router]);
 
   const handleDisconnect = async () => {
@@ -52,6 +57,10 @@ export default function ProfilePage() {
       const updated = await authService.updateUser({ walletAddress: address });
       setUser(updated);
       setIsConnected(true);
+      try {
+        const name = await resolveEnsName(address as `0x${string}`);
+        setEnsName(name);
+      } catch {}
     }
   };
 
@@ -143,6 +152,9 @@ export default function ProfilePage() {
                   <p className="text-xs font-mono text-muted-foreground">
                     {user.walletAddress.slice(0, 12)}...{user.walletAddress.slice(-10)}
                   </p>
+                  {ensName && (
+                    <p className="text-xs text-muted-foreground mt-1">ENS: {ensName}</p>
+                  )}
                 </>
               ) : (
                 <>

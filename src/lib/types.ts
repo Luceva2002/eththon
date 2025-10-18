@@ -36,6 +36,12 @@ export interface Expense {
   date: Date;
 }
 
+export interface Settlement {
+  fromUserId: string;
+  toUserId: string;
+  amount: number;
+}
+
 export interface WalletConnection {
   address: string;
   provider: string;
