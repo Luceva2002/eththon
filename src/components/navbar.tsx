@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -42,9 +43,10 @@ export function NavBar() {
   return (
     <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        <div className="flex items-center gap-6">
-          <Link href="/" className="text-xl font-bold text-primary">
-            Ethton
+        <div className="flex items-center gap-3">
+          <Link href="/" className="flex items-center gap-2">
+            <Image src="/logo.png" alt="Ethton" width={28} height={28} priority className="rounded-md" />
+            <span className="text-xl font-bold text-primary">Ethton</span>
           </Link>
         </div>
 

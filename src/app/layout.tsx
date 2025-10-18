@@ -17,6 +17,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Ethton - Bill Splitting Made Easy",
   description: "Gestisci le spese di gruppo con amici e familiari. Dividi le spese in modo semplice e veloce.",
+  icons: {
+    icon: "/logo.png",
+    shortcut: "/logo.png",
+    apple: "/logo.png",
+  },
 };
 
 export default function RootLayout({
