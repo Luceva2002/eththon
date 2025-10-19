@@ -7,7 +7,7 @@ import { TokenSelector } from './token-selector';
 import { oneInchService } from '@/lib/oneinch-service';
 import { priceService } from '@/lib/price-service';
 import { type Token } from '@/lib/token-list';
-import { useAccount, useSendTransaction, useSwitchChain } from 'wagmi';
+import { useAccount, useSendTransaction, useSwitchChain, useWalletClient } from 'wagmi';
 import { arbitrum } from 'wagmi/chains';
 import { Loader2, AlertCircle, CheckCircle2, TrendingUp } from 'lucide-react';
 import { parseEther } from 'viem';
@@ -36,6 +36,7 @@ export function CryptoPaymentDialog({
   const { address, chain } = useAccount();
   const { switchChainAsync } = useSwitchChain();
   const { sendTransactionAsync } = useSendTransaction();
+  const { data: walletClient } = useWalletClient();
   
   // State
   const [srcToken, setSrcToken] = useState<Token | null>(null);
@@ -81,6 +82,58 @@ export function CryptoPaymentDialog({
       </Dialog>
     );
   }
+
+  /**
+   * Funzione helper per aggiungere e switchare ad Arbitrum
+   */
+  const addAndSwitchToArbitrum = async () => {
+    if (!walletClient) {
+      throw new Error('Wallet non connesso');
+    }
+
+    try {
+      // Prova prima a switchare (forse è già configurato)
+      await switchChainAsync({ chainId: arbitrum.id });
+      return true;
+    } catch (switchError: any) {
+      console.log('Switch fallito, provo ad aggiungere la chain:', switchError);
+
+      // Se lo switch fallisce, prova ad aggiungere la chain
+      try {
+        await walletClient.request({
+          method: 'wallet_addEthereumChain',
+          params: [
+            {
+              chainId: `0x${arbitrum.id.toString(16)}`, // 42161 in hex = 0xa4b1
+              chainName: 'Arbitrum One',
+              nativeCurrency: {
+                name: 'Ether',
+                symbol: 'ETH',
+                decimals: 18,
+              },
+              rpcUrls: ['https://arb1.arbitrum.io/rpc'],
+              blockExplorerUrls: ['https://arbiscan.io'],
+            },
+          ],
+        });
+
+        console.log('✅ Arbitrum aggiunto al wallet!');
+        
+        // Dopo averlo aggiunto, ritenta lo switch
+        await switchChainAsync({ chainId: arbitrum.id });
+        return true;
+      } catch (addError: any) {
+        console.error('Errore aggiunta chain:', addError);
+        
+        // Se l'utente rifiuta
+        if (addError.code === 4001) {
+          throw new Error('Hai rifiutato di aggiungere Arbitrum al wallet. Per usare i pagamenti crypto, devi essere su Arbitrum One.');
+        }
+        
+        throw new Error('Impossibile aggiungere Arbitrum al wallet. Prova ad aggiungerlo manualmente.');
+      }
+    }
+  };
 
   /**
    * Step 1: Calcola conversione EUR → Crypto + Quote 1inch
@@ -131,17 +184,10 @@ export function CryptoPaymentDialog({
       // Verifica chain
       if (chain?.id !== arbitrum.id) {
         try {
-          await switchChainAsync({ chainId: arbitrum.id });
-        } catch (switchError) {
+          await addAndSwitchToArbitrum();
+        } catch (switchError: any) {
           console.error('Errore switch chain:', switchError);
-          setError(
-            'Non sei su Arbitrum! Per favore:\n' +
-            '1. Aggiungi Arbitrum network al tuo wallet\n' +
-            '2. Network: Arbitrum One\n' +
-            '3. RPC: https://arb1.arbitrum.io/rpc\n' +
-            '4. Chain ID: 42161\n\n' +
-            'Oppure cambia network manualmente nel wallet.'
-          );
+          setError(switchError.message || 'Errore cambio network');
           setStep('error');
           setIsLoading(false);
           return;
@@ -210,10 +256,10 @@ export function CryptoPaymentDialog({
       // Verifica chain
       if (chain?.id !== arbitrum.id) {
         try {
-          await switchChainAsync({ chainId: arbitrum.id });
-        } catch (switchError) {
+          await addAndSwitchToArbitrum();
+        } catch (switchError: any) {
           console.error('Errore switch chain:', switchError);
-          setError('Non sei su Arbitrum! Cambia network manualmente nel wallet e riprova.');
+          setError(switchError.message || 'Errore cambio network');
           setStep('error');
           setIsLoading(false);
           return;
