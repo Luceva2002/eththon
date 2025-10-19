@@ -130,7 +130,22 @@ export function CryptoPaymentDialog({
     try {
       // Verifica chain
       if (chain?.id !== arbitrum.id) {
-        await switchChainAsync({ chainId: arbitrum.id });
+        try {
+          await switchChainAsync({ chainId: arbitrum.id });
+        } catch (switchError) {
+          console.error('Errore switch chain:', switchError);
+          setError(
+            'Non sei su Arbitrum! Per favore:\n' +
+            '1. Aggiungi Arbitrum network al tuo wallet\n' +
+            '2. Network: Arbitrum One\n' +
+            '3. RPC: https://arb1.arbitrum.io/rpc\n' +
+            '4. Chain ID: 42161\n\n' +
+            'Oppure cambia network manualmente nel wallet.'
+          );
+          setStep('error');
+          setIsLoading(false);
+          return;
+        }
       }
 
       // Verifica se serve approvazione
@@ -194,7 +209,15 @@ export function CryptoPaymentDialog({
     try {
       // Verifica chain
       if (chain?.id !== arbitrum.id) {
-        await switchChainAsync({ chainId: arbitrum.id });
+        try {
+          await switchChainAsync({ chainId: arbitrum.id });
+        } catch (switchError) {
+          console.error('Errore switch chain:', switchError);
+          setError('Non sei su Arbitrum! Cambia network manualmente nel wallet e riprova.');
+          setStep('error');
+          setIsLoading(false);
+          return;
+        }
       }
 
       // Ottieni transazione swap
@@ -297,6 +320,19 @@ export function CryptoPaymentDialog({
           {/* Step: Select tokens */}
           {step === 'select' && (
             <>
+              {/* Warning se non su Arbitrum */}
+              {chain && chain.id !== arbitrum.id && (
+                <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 p-3 rounded-lg">
+                  <p className="text-sm text-amber-800 dark:text-amber-200 font-semibold">
+                    ⚠️ Network non corretto
+                  </p>
+                  <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+                    Sei su <strong>{chain.name}</strong>. I pagamenti crypto funzionano su <strong>Arbitrum One</strong>.
+                    L&apos;app ti chiederà di switchare automaticamente.
+                  </p>
+                </div>
+              )}
+
               <TokenSelector
                 label="Con quale crypto vuoi pagare?"
                 value={srcToken}
@@ -414,9 +450,11 @@ export function CryptoPaymentDialog({
             <div className="text-center py-8">
               <AlertCircle className="h-16 w-16 mx-auto mb-4 text-red-600" />
               <p className="font-bold text-xl mb-2">Errore</p>
-              <p className="text-muted-foreground mb-4 text-sm">
-                {error}
-              </p>
+              <div className="text-left bg-muted p-4 rounded-lg mb-4 text-sm max-h-60 overflow-y-auto">
+                <pre className="whitespace-pre-wrap font-mono text-xs">
+                  {error}
+                </pre>
+              </div>
               <Button onClick={() => setStep('select')} className="w-full">
                 Riprova
               </Button>
