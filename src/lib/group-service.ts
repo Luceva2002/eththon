@@ -91,6 +91,11 @@ export const groupService = {
           createdAt: toDate(g.created_at),
           totalOwed: Math.round(totalOwed * 100) / 100,
           totalToReceive: Math.round(totalToReceive * 100) / 100,
+          closed: g.closed ?? false,
+          closedAt: g.closed_at ? toDate(g.closed_at) : null,
+          nftMinted: g.nft_minted ?? false,
+          nftTokenId: g.nft_token_id ?? null,
+          nftTxHash: g.nft_tx_hash ?? null,
         });
       }
       return groups;
@@ -495,6 +500,101 @@ export const groupService = {
       return { receive: Math.max(0, bal), owe: Math.max(0, -bal), currency };
     }
     return { receive: 0, owe: 0, currency };
+  },
+
+  /**
+   * Chiude un gruppo - non sarà più possibile aggiungere spese
+   */
+  async closeGroup(groupId: string): Promise<{ ok: boolean; error?: string }> {
+    try {
+      const { error } = await supabase
+        .from('groups')
+        .update({
+          closed: true,
+          closed_at: new Date().toISOString(),
+        })
+        .eq('id', groupId)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      console.log('✅ Gruppo chiuso:', groupId);
+      return { ok: true };
+    } catch (e) {
+      console.error('❌ Errore chiusura gruppo:', e);
+      return { ok: false, error: (e as Error).message };
+    }
+  },
+
+  /**
+   * Riapre un gruppo precedentemente chiuso
+   */
+  async reopenGroup(groupId: string): Promise<{ ok: boolean; error?: string }> {
+    try {
+      const { error } = await supabase
+        .from('groups')
+        .update({
+          closed: false,
+          closed_at: null,
+        })
+        .eq('id', groupId);
+
+      if (error) throw error;
+
+      console.log('✅ Gruppo riaperto:', groupId);
+      return { ok: true };
+    } catch (e) {
+      console.error('❌ Errore riapertura gruppo:', e);
+      return { ok: false, error: (e as Error).message };
+    }
+  },
+
+  /**
+   * Aggiorna i dati NFT dopo il mint
+   */
+  async updateGroupNFTData(
+    groupId: string,
+    tokenId: string,
+    txHash: string
+  ): Promise<{ ok: boolean; error?: string }> {
+    try {
+      const { error } = await supabase
+        .from('groups')
+        .update({
+          nft_minted: true,
+          nft_token_id: tokenId,
+          nft_tx_hash: txHash,
+        })
+        .eq('id', groupId);
+
+      if (error) throw error;
+
+      console.log('✅ NFT data salvato per gruppo:', groupId, 'tokenId:', tokenId);
+      return { ok: true };
+    } catch (e) {
+      console.error('❌ Errore salvataggio NFT data:', e);
+      return { ok: false, error: (e as Error).message };
+    }
+  },
+
+  /**
+   * Verifica se un gruppo è chiuso
+   */
+  async isGroupClosed(groupId: string): Promise<boolean> {
+    try {
+      const { data, error } = await supabase
+        .from('groups')
+        .select('closed')
+        .eq('id', groupId)
+        .single();
+
+      if (error) throw error;
+      return (data as GroupRow).closed ?? false;
+    } catch (e) {
+      console.error('❌ Errore verifica chiusura gruppo:', e);
+      return false;
+    }
   },
 };
 

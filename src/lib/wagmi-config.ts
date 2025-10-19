@@ -1,7 +1,7 @@
 "use client";
 
 import { createConfig, http } from 'wagmi';
-import { base, mainnet, arbitrum } from 'wagmi/chains';
+import { base, mainnet, arbitrum, arbitrumSepolia } from 'wagmi/chains';
 import { coinbaseWallet, metaMask, walletConnect } from 'wagmi/connectors';
 
 const walletConnectProjectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || '';
@@ -13,9 +13,10 @@ const connectors = [
 ];
 
 export const wagmiConfig = createConfig({
-  chains: [arbitrum, base, mainnet],
+  chains: [arbitrumSepolia, arbitrum, base, mainnet], // arbitrumSepolia come primo per testing
   connectors,
   transports: {
+    [arbitrumSepolia.id]: http(),
     [arbitrum.id]: http(),
     [base.id]: http(),
     [mainnet.id]: http(),

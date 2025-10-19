@@ -38,6 +38,11 @@ export type GroupRow = {
   currency: string;
   owner_wallet: string;
   created_at?: string;
+  closed?: boolean;
+  closed_at?: string | null;
+  nft_minted?: boolean;
+  nft_token_id?: string | null;
+  nft_tx_hash?: string | null;
 };
 
 export type GroupMemberRow = {

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Plus, Users, Receipt, DollarSign, Calendar } from 'lucide-react';
+import { ArrowLeft, Plus, Users, Receipt, DollarSign, Calendar, Award, Lock, LockOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -20,6 +20,7 @@ import { Label } from '@/components/ui/label';
 import { QRCodeSVG } from 'qrcode.react';
 import { CryptoPaymentDialog } from '@/components/crypto-payment-dialog';
 import { Settlement } from '@/lib/types';
+import { MintGroupNFT } from '@/components/mint-group-nft';
 
 export default function GroupDetailPage() {
   const params = useParams();
@@ -40,6 +41,8 @@ export default function GroupDetailPage() {
   const [showCryptoPayment, setShowCryptoPayment] = useState(false);
   const [selectedSettlement, setSelectedSettlement] = useState<Settlement | null>(null);
   const [creditorWalletAddress, setCreditorWalletAddress] = useState<string | null>(null);
+  const [showMintNFT, setShowMintNFT] = useState(false);
+  const [isClosingGroup, setIsClosingGroup] = useState(false);
 
   useEffect(() => {
     const user = authService.getCurrentUser();
@@ -203,7 +206,7 @@ export default function GroupDetailPage() {
 
       // Ricarica dati
       await loadGroupData();
-      
+
       // Chiudi dialog
       setShowCryptoPayment(false);
       setSelectedSettlement(null);
@@ -212,6 +215,42 @@ export default function GroupDetailPage() {
     } catch (error) {
       console.error('Errore registrazione pagamento:', error);
       alert('Errore nella registrazione del pagamento');
+    }
+  };
+
+  const handleNFTMintSuccess = async (tokenId: string, txHash: string) => {
+    console.log('NFT Mintato con successo!', { tokenId, txHash });
+    await loadGroupData();
+    setShowMintNFT(false);
+  };
+
+  const handleCloseGroup = async () => {
+    if (!group) return;
+
+    const confirm = window.confirm(
+      'Sei sicuro di voler chiudere questo gruppo?\n\n' +
+      '• Non potrai più aggiungere spese\n' +
+      '• Potrai mintare l\'NFT commemorativo\n' +
+      '• Puoi riaprire il gruppo in seguito se necessario'
+    );
+
+    if (!confirm) return;
+
+    setIsClosingGroup(true);
+    try {
+      const result = await groupService.closeGroup(group.id);
+
+      if (result.ok) {
+        await loadGroupData();
+        alert('✅ Gruppo chiuso con successo! Ora puoi mintare l\'NFT commemorativo.');
+      } else {
+        alert('❌ Errore nella chiusura del gruppo: ' + result.error);
+      }
+    } catch (error) {
+      console.error('Errore chiusura gruppo:', error);
+      alert('❌ Errore nella chiusura del gruppo');
+    } finally {
+      setIsClosingGroup(false);
     }
   };
 
@@ -279,9 +318,20 @@ export default function GroupDetailPage() {
       <div className="mb-8">
         <div className="flex items-start justify-between mb-6">
           <div>
-            <div className="flex items-center gap-3 mb-2">
+            <div className="flex items-center gap-3 mb-2 flex-wrap">
               <h1 className="text-3xl font-bold">{group.name}</h1>
               <Badge variant="secondary">{group.currency}</Badge>
+              {group.closed ? (
+                <Badge variant="outline" className="gap-1 bg-red-50 dark:bg-red-950 border-red-300">
+                  <Lock className="h-3 w-3" />
+                  Chiuso
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="gap-1 bg-green-50 dark:bg-green-950 border-green-300">
+                  <LockOpen className="h-3 w-3" />
+                  Aperto
+                </Badge>
+              )}
             </div>
             <p className="text-muted-foreground flex items-center gap-2">
               <Users className="h-4 w-4" />
@@ -289,7 +339,7 @@ export default function GroupDetailPage() {
             </p>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Dialog>
               <DialogTrigger asChild>
                 <Button variant="outline" onClick={openInvite}>
@@ -312,6 +362,36 @@ export default function GroupDetailPage() {
                 </div>
               </DialogContent>
             </Dialog>
+
+            {!group.closed && (
+              <Button
+                variant="outline"
+                onClick={handleCloseGroup}
+                disabled={isClosingGroup}
+                className="gap-2"
+              >
+                <Lock className="h-4 w-4" />
+                {isClosingGroup ? 'Chiudendo...' : 'Chiudi Gruppo'}
+              </Button>
+            )}
+
+            {group.closed && !group.nft_token_id && (
+              <Button
+                variant="default"
+                onClick={() => setShowMintNFT(true)}
+                className="gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+              >
+                <Award className="h-4 w-4" />
+                Minta NFT
+              </Button>
+            )}
+
+            {group.closed && group.nft_token_id && (
+              <Badge variant="secondary" className="gap-2 px-3 py-2">
+                <Award className="h-4 w-4" />
+                NFT Mintato #{group.nft_token_id}
+              </Badge>
+            )}
 
             <Dialog open={showAddExpense} onOpenChange={setShowAddExpense}>
               <DialogTrigger asChild>
@@ -638,6 +718,16 @@ export default function GroupDetailPage() {
           creditorName={selectedSettlement.toUserId}
           creditorAddress={creditorWalletAddress}
           onSuccess={handleCryptoPaymentSuccess}
+        />
+      )}
+
+      {/* Mint NFT Dialog */}
+      {showMintNFT && group && (
+        <MintGroupNFT
+          open={showMintNFT}
+          onClose={() => setShowMintNFT(false)}
+          group={group}
+          onSuccess={handleNFTMintSuccess}
         />
       )}
     </div>

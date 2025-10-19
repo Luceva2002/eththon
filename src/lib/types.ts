@@ -16,6 +16,11 @@ export interface Group {
   createdAt: Date;
   totalOwed: number;
   totalToReceive: number;
+  closed?: boolean;
+  closedAt?: Date | null;
+  nftMinted?: boolean;
+  nftTokenId?: string | null;
+  nftTxHash?: string | null;
 }
 
 export interface GroupMember {
