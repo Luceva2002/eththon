@@ -400,7 +400,7 @@ export default function GroupDetailPage() {
                   Aggiungi spesa
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-[500px]">
+              <DialogContent aria-describedby={undefined} className="sm:max-w-[500px]">
                 <DialogHeader>
                   <DialogTitle className="text-2xl font-bold">Nuova spesa</DialogTitle>
                 </DialogHeader>
@@ -444,8 +444,8 @@ export default function GroupDetailPage() {
                       onChange={e => setPaidBy(e.target.value)}
                     >
                       <option value="">Seleziona chi ha pagato</option>
-                      {group.members.map(m => (
-                        <option key={m.userId} value={m.userId}>
+                      {group.members.map((m, idx) => (
+                        <option key={`${m.userId}-${idx}`} value={m.userId}>
                           {m.name.length > 20 ? `${m.name.substring(0, 20)}...` : m.name}
                         </option>
                       ))}
@@ -456,11 +456,11 @@ export default function GroupDetailPage() {
                   <div className="space-y-3">
                     <Label className="text-base font-semibold">Dividi tra</Label>
                     <div className="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto p-1">
-                      {group.members.map(m => {
+                      {group.members.map((m, idx) => {
                         const checked = splitBetween.includes(m.userId);
                         return (
                           <label 
-                            key={m.userId} 
+                            key={`${m.userId}-${idx}`} 
                             className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
                               checked 
                                 ? 'border-primary bg-primary/5' 
@@ -652,8 +652,8 @@ export default function GroupDetailPage() {
         {/* Members Tab */}
         <TabsContent value="members" className="space-y-4">
           <div className="grid gap-4">
-            {group.members.map((member) => (
-              <Card key={member.userId}>
+            {group.members.map((member, idx) => (
+              <Card key={`${member.userId}-${idx}`}>
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">

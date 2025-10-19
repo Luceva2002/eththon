@@ -20,6 +20,8 @@ CREATE TABLE IF NOT EXISTS groups (
   name TEXT NOT NULL,
   currency TEXT NOT NULL DEFAULT 'EUR',
   owner_wallet TEXT,
+  closed BOOLEAN DEFAULT false,
+  closed_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -86,6 +88,7 @@ CREATE INDEX IF NOT EXISTS idx_expenses_group ON expenses(group_id);
 CREATE INDEX IF NOT EXISTS idx_payments_group ON payments(group_id);
 CREATE INDEX IF NOT EXISTS idx_group_balances_group ON group_balances(group_id);
 CREATE INDEX IF NOT EXISTS idx_group_balances_nickname ON group_balances(group_id, nickname);
+CREATE INDEX IF NOT EXISTS idx_groups_closed ON groups(closed);
 
 -- ============================================
 -- ROW LEVEL SECURITY (RLS)
