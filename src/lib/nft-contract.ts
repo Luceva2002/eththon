@@ -4,8 +4,8 @@
  * IMPORTANTE: Sostituisci CONTRACT_ADDRESS con l'indirizzo del tuo contratto deployato!
  */
 
-// 🔴 SOSTITUISCI QUESTO INDIRIZZO CON IL TUO DOPO IL DEPLOY!
-export const GROUP_NFT_CONTRACT_ADDRESS = '0x189a3d17cfed4a076cdc3591373d0fa924b6dd22' as const;
+// ✅ Contratto deployato su Arbitrum Sepolia
+export const GROUP_NFT_CONTRACT_ADDRESS = '0xde053e4ae7ed6caf7a11809150b86cfca01afd22' as const;
 
 // ABI del contratto LITE - versione minimalista (meno gas!)
 export const GROUP_NFT_ABI = [

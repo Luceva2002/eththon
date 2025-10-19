@@ -375,7 +375,7 @@ export default function GroupDetailPage() {
               </Button>
             )}
 
-            {group.closed && !group.nft_token_id && (
+            {group.closed && !group.nftTokenId && (
               <Button
                 variant="default"
                 onClick={() => setShowMintNFT(true)}
@@ -386,10 +386,10 @@ export default function GroupDetailPage() {
               </Button>
             )}
 
-            {group.closed && group.nft_token_id && (
+            {group.closed && group.nftTokenId && (
               <Badge variant="secondary" className="gap-2 px-3 py-2">
                 <Award className="h-4 w-4" />
-                NFT Mintato #{group.nft_token_id}
+                NFT Mintato #{group.nftTokenId}
               </Badge>
             )}
 

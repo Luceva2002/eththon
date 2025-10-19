@@ -124,6 +124,11 @@ export const groupService = {
         createdAt: toDate(groupData.created_at),
         totalOwed: 0,
         totalToReceive: 0,
+        closed: groupData.closed || false,
+        closedAt: groupData.closed_at ? toDate(groupData.closed_at) : null,
+        nftMinted: !!groupData.nft_token_id,
+        nftTokenId: groupData.nft_token_id || null,
+        nftTxHash: groupData.nft_tx_hash || null,
       };
 
       // calcola con spese + pagamenti

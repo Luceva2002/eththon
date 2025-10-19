@@ -22,6 +22,9 @@ CREATE TABLE IF NOT EXISTS groups (
   owner_wallet TEXT,
   closed BOOLEAN DEFAULT false,
   closed_at TIMESTAMPTZ,
+  nft_token_id TEXT,
+  nft_tx_hash TEXT,
+  nft_minted_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -89,6 +92,7 @@ CREATE INDEX IF NOT EXISTS idx_payments_group ON payments(group_id);
 CREATE INDEX IF NOT EXISTS idx_group_balances_group ON group_balances(group_id);
 CREATE INDEX IF NOT EXISTS idx_group_balances_nickname ON group_balances(group_id, nickname);
 CREATE INDEX IF NOT EXISTS idx_groups_closed ON groups(closed);
+CREATE INDEX IF NOT EXISTS idx_groups_nft ON groups(nft_token_id);
 
 -- ============================================
 -- ROW LEVEL SECURITY (RLS)
