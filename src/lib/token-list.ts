@@ -136,6 +136,7 @@ export const SUGGESTED_PAYMENT_TOKENS: Token[] = [
   DAI,
   ETH_NATIVE,
   WETH,
+  ARB,
 ];
 
 /**
