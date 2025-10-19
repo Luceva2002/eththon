@@ -12,6 +12,11 @@ import { arbitrum } from 'wagmi/chains';
 import { Loader2, AlertCircle, CheckCircle2, TrendingUp } from 'lucide-react';
 import { parseEther } from 'viem';
 
+// Tipo per ethereum provider (evita conflitti con altri tipi globali)
+interface EthereumProvider {
+  request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
+}
+
 interface CryptoPaymentDialogProps {
   open: boolean;
   onClose: () => void;
@@ -87,20 +92,31 @@ export function CryptoPaymentDialog({
    * Funzione helper per aggiungere e switchare ad Arbitrum
    */
   const addAndSwitchToArbitrum = async () => {
-    if (!walletClient) {
-      throw new Error('Wallet non connesso');
-    }
+    console.log('🔍 Verifica wallet client:', { 
+      walletClient: !!walletClient, 
+      address, 
+      chain: chain?.name,
+      hasEthereum: typeof window !== 'undefined' && !!(window as { ethereum?: EthereumProvider }).ethereum
+    });
 
     try {
       // Prova prima a switchare (forse è già configurato)
       await switchChainAsync({ chainId: arbitrum.id });
+      console.log('✅ Switchato ad Arbitrum');
       return true;
     } catch (switchError) {
-      console.log('Switch fallito, provo ad aggiungere la chain:', switchError);
+      console.log('⚠️ Switch fallito, provo ad aggiungere la chain:', switchError);
 
-      // Se lo switch fallisce, prova ad aggiungere la chain
+      // Se lo switch fallisce, prova ad aggiungere la chain usando window.ethereum
       try {
-        await walletClient.request({
+        const ethereum = (window as { ethereum?: EthereumProvider }).ethereum;
+        
+        if (typeof window === 'undefined' || !ethereum) {
+          throw new Error('MetaMask non trovato. Installa MetaMask per continuare.');
+        }
+
+        // Usa window.ethereum direttamente (più affidabile)
+        await ethereum.request({
           method: 'wallet_addEthereumChain',
           params: [
             {
@@ -123,7 +139,7 @@ export function CryptoPaymentDialog({
         await switchChainAsync({ chainId: arbitrum.id });
         return true;
       } catch (addError) {
-        console.error('Errore aggiunta chain:', addError);
+        console.error('❌ Errore aggiunta chain:', addError);
         
         // Se l'utente rifiuta
         if ((addError as { code?: number }).code === 4001) {
@@ -139,17 +155,41 @@ export function CryptoPaymentDialog({
    * Step 1: Calcola conversione EUR → Crypto + Quote 1inch
    */
   const handleCalculateQuote = async () => {
-    if (!srcToken || !dstToken || !address) return;
+    if (!srcToken || !dstToken || !address) {
+      console.warn('⚠️ Parametri mancanti:', { srcToken: !!srcToken, dstToken: !!dstToken, address: !!address });
+      return;
+    }
 
     setIsLoading(true);
     setError('');
 
     try {
+      console.log('📊 Calcolo quote:', {
+        debtAmount,
+        currency: debtCurrency,
+        srcToken: srcToken.symbol,
+        dstToken: dstToken.symbol,
+      });
+
       // 1. Converti EUR → srcToken (CoinGecko)
       const amountInSrcToken = await priceService.convertEURToCrypto(
         debtAmount,
         srcToken.symbol
       );
+      console.log('💱 Conversione EUR→Crypto:', { 
+        eur: debtAmount, 
+        crypto: amountInSrcToken,
+        token: srcToken.symbol 
+      });
+      
+      // Check amount minimo per 1inch (~$1 USD)
+      if (amountInSrcToken < 0.5 && !srcToken.isStablecoin) {
+        throw new Error(
+          `Importo troppo piccolo per lo swap. 1inch richiede almeno ~$1 USD di valore. ` +
+          `Prova con un importo maggiore o usa una stablecoin.`
+        );
+      }
+      
       setSrcAmount(amountInSrcToken.toString());
 
       // 2. Ottieni quote da 1inch (srcToken → dstToken)
@@ -366,8 +406,20 @@ export function CryptoPaymentDialog({
           {/* Step: Select tokens */}
           {step === 'select' && (
             <>
+              {/* Warning se wallet non connesso correttamente */}
+              {!address && (
+                <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 p-3 rounded-lg">
+                  <p className="text-sm text-red-800 dark:text-red-200 font-semibold">
+                    ⚠️ Wallet non connesso
+                  </p>
+                  <p className="text-xs text-red-700 dark:text-red-300 mt-1">
+                    Connetti il wallet prima di procedere con il pagamento.
+                  </p>
+                </div>
+              )}
+
               {/* Warning se non su Arbitrum */}
-              {chain && chain.id !== arbitrum.id && (
+              {address && chain && chain.id !== arbitrum.id && (
                 <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 p-3 rounded-lg">
                   <p className="text-sm text-amber-800 dark:text-amber-200 font-semibold">
                     ⚠️ Network non corretto
@@ -395,7 +447,7 @@ export function CryptoPaymentDialog({
 
               <Button
                 onClick={handleCalculateQuote}
-                disabled={!srcToken || !dstToken || isLoading}
+                disabled={!srcToken || !dstToken || isLoading || !address}
                 className="w-full"
                 size="lg"
               >

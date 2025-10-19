@@ -120,11 +120,27 @@ export class OneInchService {
         amount: amountInWei.toString(),
       });
 
+      console.log('🔍 1inch Quote params:', {
+        src: srcToken.symbol,
+        srcAddress: srcToken.address,
+        dst: dstToken.symbol,
+        dstAddress: dstToken.address,
+        amountHuman: amount,
+        amountWei: amountInWei.toString(),
+      });
+
       const response = await fetch(`${this.baseUrl}/quote?${params}`);
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Errore quote');
+        const errorText = await response.text();
+        console.error('❌ 1inch API error:', response.status, errorText);
+        let error;
+        try {
+          error = JSON.parse(errorText);
+        } catch {
+          error = { error: errorText };
+        }
+        throw new Error(error.error || `API 1inch error: ${response.status}`);
       }
 
       const data = await response.json();
