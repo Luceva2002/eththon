@@ -18,6 +18,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { QRCodeSVG } from 'qrcode.react';
+import { CryptoPaymentDialog } from '@/components/crypto-payment-dialog';
+import { Settlement } from '@/lib/types';
 
 export default function GroupDetailPage() {
   const params = useParams();
@@ -35,6 +37,9 @@ export default function GroupDetailPage() {
   const [paying, setPaying] = useState<string | null>(null);
   const [myReceive, setMyReceive] = useState(0);
   const [myOwe, setMyOwe] = useState(0);
+  const [showCryptoPayment, setShowCryptoPayment] = useState(false);
+  const [selectedSettlement, setSelectedSettlement] = useState<Settlement | null>(null);
+  const [creditorWalletAddress, setCreditorWalletAddress] = useState<string | null>(null);
 
   useEffect(() => {
     const user = authService.getCurrentUser();
@@ -141,6 +146,61 @@ export default function GroupDetailPage() {
       console.error('record payment failed', e);
     } finally {
       setPaying(null);
+    }
+  };
+
+  const handleOpenCryptoPayment = async (fromUserId: string, toUserId: string, amount: number) => {
+    if (!group) return;
+
+    // Recupera wallet address del creditore
+    try {
+      const { supabase } = await import('@/lib/supabase-client');
+      const { data } = await supabase
+        .from('group_members')
+        .select('wallet_address')
+        .eq('group_id', group.id)
+        .eq('nickname', toUserId)
+        .maybeSingle();
+      
+      setCreditorWalletAddress(data?.wallet_address || null);
+      setSelectedSettlement({ fromUserId, toUserId, amount });
+      setShowCryptoPayment(true);
+    } catch (error) {
+      console.error('Errore recupero wallet address:', error);
+      alert('Errore nel recuperare il wallet address del creditore');
+    }
+  };
+
+  const handleCryptoPaymentSuccess = async (
+    txHash: string,
+    swapTxHash: string,
+    cryptoAmount: string,
+    cryptoSymbol: string
+  ) => {
+    if (!group || !selectedSettlement) return;
+
+    try {
+      // Registra il pagamento su Supabase
+      await groupService.recordPayment({
+        group_id: group.id,
+        from_nickname: selectedSettlement.fromUserId,
+        to_nickname: selectedSettlement.toUserId,
+        amount_fiat: selectedSettlement.amount,
+        currency: group.currency,
+        tx_hash: swapTxHash,
+      });
+
+      // Ricarica dati
+      await loadGroupData();
+      
+      // Chiudi dialog
+      setShowCryptoPayment(false);
+      setSelectedSettlement(null);
+
+      alert(`✅ Pagamento completato! ${cryptoAmount} ${cryptoSymbol} inviati`);
+    } catch (error) {
+      console.error('Errore registrazione pagamento:', error);
+      alert('Errore nella registrazione del pagamento');
     }
   };
 
@@ -459,14 +519,33 @@ export default function GroupDetailPage() {
                   {settlements.length === 0 ? (
                     <p className="text-sm text-muted-foreground">Tutti in pari 🎉</p>
                   ) : (
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       {settlements.map((s, idx) => (
-                        <div key={idx} className="flex items-center justify-between text-sm gap-2">
-                          <span>{s.from} → {s.to}</span>
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium">{formatCurrency(s.amount, group.currency)}</span>
-                            <Button size="sm" variant="secondary" disabled={paying === `${s.from}->${s.to}`} onClick={() => handleSettlePayment(s.from, s.to, s.amount)}>
-                              {paying === `${s.from}->${s.to}` ? 'Registrazione...' : 'Segna pagamento'}
+                        <div key={idx} className="p-3 rounded-lg border bg-background">
+                          <div className="flex items-center justify-between mb-2">
+                            <div>
+                              <p className="font-medium">{s.from} → {s.to}</p>
+                              <p className="text-xs text-muted-foreground">Debito da saldare</p>
+                            </div>
+                            <span className="font-bold text-lg">{formatCurrency(s.amount, group.currency)}</span>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              disabled={paying === `${s.from}->${s.to}`}
+                              onClick={() => handleSettlePayment(s.from, s.to, s.amount)}
+                              className="flex-1"
+                            >
+                              {paying === `${s.from}->${s.to}` ? 'Registrazione...' : '✓ Segna pagato'}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="default"
+                              onClick={() => handleOpenCryptoPayment(s.from, s.to, s.amount)}
+                              className="flex-1 gap-1"
+                            >
+                              💳 Paga con Crypto
                             </Button>
                           </div>
                         </div>
@@ -533,6 +612,23 @@ export default function GroupDetailPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Crypto Payment Dialog */}
+      {showCryptoPayment && selectedSettlement && group && (
+        <CryptoPaymentDialog
+          open={showCryptoPayment}
+          onClose={() => {
+            setShowCryptoPayment(false);
+            setSelectedSettlement(null);
+            setCreditorWalletAddress(null);
+          }}
+          debtAmount={selectedSettlement.amount}
+          debtCurrency={group.currency}
+          creditorName={selectedSettlement.toUserId}
+          creditorAddress={creditorWalletAddress}
+          onSuccess={handleCryptoPaymentSuccess}
+        />
+      )}
     </div>
   );
 }
