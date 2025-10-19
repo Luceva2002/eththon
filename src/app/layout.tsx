@@ -4,6 +4,7 @@ import "./globals.css";
 import { NavBar } from "@/components/navbar";
 import "@coinbase/onchainkit/styles.css";
 import RootProvider from "@/components/ui/rootProvider";
+import { FarcasterReady } from "@/components/farcaster-ready";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -45,6 +46,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <RootProvider>
+          <FarcasterReady />
           <NavBar />
           {children}
         </RootProvider>
