@@ -95,7 +95,7 @@ export function CryptoPaymentDialog({
       // Prova prima a switchare (forse è già configurato)
       await switchChainAsync({ chainId: arbitrum.id });
       return true;
-    } catch (switchError: any) {
+    } catch (switchError) {
       console.log('Switch fallito, provo ad aggiungere la chain:', switchError);
 
       // Se lo switch fallisce, prova ad aggiungere la chain
@@ -122,11 +122,11 @@ export function CryptoPaymentDialog({
         // Dopo averlo aggiunto, ritenta lo switch
         await switchChainAsync({ chainId: arbitrum.id });
         return true;
-      } catch (addError: any) {
+      } catch (addError) {
         console.error('Errore aggiunta chain:', addError);
         
         // Se l'utente rifiuta
-        if (addError.code === 4001) {
+        if ((addError as { code?: number }).code === 4001) {
           throw new Error('Hai rifiutato di aggiungere Arbitrum al wallet. Per usare i pagamenti crypto, devi essere su Arbitrum One.');
         }
         
@@ -185,9 +185,9 @@ export function CryptoPaymentDialog({
       if (chain?.id !== arbitrum.id) {
         try {
           await addAndSwitchToArbitrum();
-        } catch (switchError: any) {
+        } catch (switchError) {
           console.error('Errore switch chain:', switchError);
-          setError(switchError.message || 'Errore cambio network');
+          setError((switchError as Error).message || 'Errore cambio network');
           setStep('error');
           setIsLoading(false);
           return;
@@ -257,9 +257,9 @@ export function CryptoPaymentDialog({
       if (chain?.id !== arbitrum.id) {
         try {
           await addAndSwitchToArbitrum();
-        } catch (switchError: any) {
+        } catch (switchError) {
           console.error('Errore switch chain:', switchError);
-          setError(switchError.message || 'Errore cambio network');
+          setError((switchError as Error).message || 'Errore cambio network');
           setStep('error');
           setIsLoading(false);
           return;

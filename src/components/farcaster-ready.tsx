@@ -23,7 +23,7 @@ export function FarcasterReady() {
         } else {
           console.log('ℹ️ Not running in Farcaster context');
         }
-      } catch (error) {
+      } catch {
         // Non siamo in Farcaster, ignora l'errore
         console.log('ℹ️ Farcaster SDK not available (running outside Farcaster)');
       }
