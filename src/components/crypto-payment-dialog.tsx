@@ -7,7 +7,7 @@ import { TokenSelector } from './token-selector';
 import { oneInchService } from '@/lib/oneinch-service';
 import { priceService } from '@/lib/price-service';
 import { type Token } from '@/lib/token-list';
-import { useAccount, useSendTransaction, useWaitForTransactionReceipt, useSwitchChain } from 'wagmi';
+import { useAccount, useSendTransaction, useSwitchChain } from 'wagmi';
 import { arbitrum } from 'wagmi/chains';
 import { Loader2, AlertCircle, CheckCircle2, TrendingUp } from 'lucide-react';
 import { parseEther } from 'viem';
@@ -45,7 +45,6 @@ export function CryptoPaymentDialog({
   const [step, setStep] = useState<Step>('select');
   const [error, setError] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
-  const [currentTxHash, setCurrentTxHash] = useState<string>('');
   const [swapTxHash, setSwapTxHash] = useState<string>('');
 
   // Reset quando il dialog si chiude
@@ -57,7 +56,6 @@ export function CryptoPaymentDialog({
       setDstAmount('0');
       setStep('select');
       setError('');
-      setCurrentTxHash('');
       setSwapTxHash('');
     }
   }, [open]);
@@ -73,7 +71,7 @@ export function CryptoPaymentDialog({
           <div className="space-y-4">
             <p className="text-muted-foreground">
               {creditorName} non ha ancora connesso il suo wallet. 
-              Chiedigli di collegarsi all'app per poter ricevere pagamenti crypto.
+              Chiedigli di collegarsi all&apos;app per poter ricevere pagamenti crypto.
             </p>
             <Button onClick={onClose} className="w-full">
               OK
@@ -168,9 +166,8 @@ export function CryptoPaymentDialog({
       });
 
       console.log('Approve tx:', txHash);
-      setCurrentTxHash(txHash);
 
-      // Attendi conferma (puoi usare useWaitForTransactionReceipt)
+      // Attendi conferma
       // Per semplicità, aspettiamo 10 secondi
       await new Promise(resolve => setTimeout(resolve, 10000));
 
@@ -246,12 +243,11 @@ export function CryptoPaymentDialog({
       // Invia token al creditore
       const txHash = await sendTransactionAsync({
         to: creditorAddress as `0x${string}`,
-        value: dstToken.isNative ? parseEther(dstAmount) : 0n,
+        value: dstToken.isNative ? parseEther(dstAmount) : BigInt(0),
         data: '0x', // Transfer semplice per ETH, per ERC20 servirebbetransfer()
       });
 
       console.log('Transfer tx:', txHash);
-      setCurrentTxHash(txHash);
 
       // Attendi conferma
       await new Promise(resolve => setTimeout(resolve, 10000));

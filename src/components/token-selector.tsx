@@ -67,6 +67,7 @@ export function TokenSelector({
       {value && (
         <div className="flex items-center gap-3 p-3 rounded-lg border bg-muted/50">
           {value.logoURI && (
+            // eslint-disable-next-line @next/next/no-img-element
             <img 
               src={value.logoURI} 
               alt={value.symbol}
