@@ -28,8 +28,11 @@ export async function GET(request: NextRequest) {
   const dst = searchParams.get('dst');
   const amount = searchParams.get('amount');
 
+  console.log('🔍 [1inch Quote API] Parametri ricevuti:', { src, dst, amount });
+
   // Valida parametri
   if (!src || !dst || !amount) {
+    console.error('❌ [1inch Quote API] Parametri mancanti!');
     return NextResponse.json(
       { error: 'Parametri mancanti: src, dst e amount sono richiesti' },
       { status: 400 }

@@ -97,11 +97,14 @@ export default function GroupDetailPage() {
       setGroup({ ...groupData, members: computedMembers });
       const payments = await groupService.getGroupPayments(groupId);
       const s = groupService.computeSettlementsWithPayments({ ...groupData, members: computedMembers }, expensesData, payments);
-      setSettlements(s.map(x => ({
+      const mappedSettlements = s.map(x => ({
         from: computedMembers.find(m => m.userId === x.fromUserId)?.name || 'Sconosciuto',
         to: computedMembers.find(m => m.userId === x.toUserId)?.name || 'Sconosciuto',
         amount: x.amount,
-      })));
+      }));
+      
+      console.log('💰 Settlements calcolati:', mappedSettlements);
+      setSettlements(mappedSettlements);
       // default pagatore = primo membro (creatore)
       if (!paidBy && computedMembers.length > 0) setPaidBy(computedMembers[0].userId);
 
@@ -151,6 +154,14 @@ export default function GroupDetailPage() {
 
   const handleOpenCryptoPayment = async (fromUserId: string, toUserId: string, amount: number) => {
     if (!group) return;
+
+    console.log('🔵 handleOpenCryptoPayment chiamato con:', {
+      fromUserId,
+      toUserId,
+      amount,
+      tipoAmount: typeof amount,
+      groupCurrency: group.currency
+    });
 
     // Recupera wallet address del creditore
     try {

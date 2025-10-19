@@ -7,10 +7,10 @@ import { TokenSelector } from './token-selector';
 import { oneInchService } from '@/lib/oneinch-service';
 import { priceService } from '@/lib/price-service';
 import { type Token } from '@/lib/token-list';
-import { useAccount, useSendTransaction, useSwitchChain, useWalletClient } from 'wagmi';
+import { useAccount, useSendTransaction, useSwitchChain, useWalletClient, usePublicClient } from 'wagmi';
 import { arbitrum } from 'wagmi/chains';
 import { Loader2, AlertCircle, CheckCircle2, TrendingUp } from 'lucide-react';
-import { parseEther } from 'viem';
+import { parseEther, parseUnits, encodeFunctionData, erc20Abi, formatUnits } from 'viem';
 
 // Tipo per ethereum provider (evita conflitti con altri tipi globali)
 interface EthereumProvider {
@@ -42,6 +42,7 @@ export function CryptoPaymentDialog({
   const { switchChainAsync } = useSwitchChain();
   const { sendTransactionAsync } = useSendTransaction();
   const { data: walletClient } = useWalletClient();
+  const publicClient = usePublicClient({ chainId: arbitrum.id });
   
   // State
   const [srcToken, setSrcToken] = useState<Token | null>(null);
@@ -66,11 +67,25 @@ export function CryptoPaymentDialog({
     }
   }, [open]);
 
+  // DEBUG: Log quando si apre il dialog con i valori ricevuti
+  useEffect(() => {
+    if (open) {
+      console.log('🎯 CryptoPaymentDialog APERTO con valori:', {
+        debtAmount,
+        debtCurrency,
+        creditorName,
+        creditorAddress,
+        tipoDebtAmount: typeof debtAmount,
+        debtAmountNumber: Number(debtAmount)
+      });
+    }
+  }, [open, debtAmount, debtCurrency, creditorName, creditorAddress]);
+
   // Verifica creditor address
   if (!creditorAddress) {
     return (
       <Dialog open={open} onOpenChange={onClose}>
-        <DialogContent>
+        <DialogContent aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>⚠️ Wallet non trovato</DialogTitle>
           </DialogHeader>
@@ -89,6 +104,35 @@ export function CryptoPaymentDialog({
   }
 
   /**
+   * Funzione helper per verificare il saldo di un token
+   */
+  const checkTokenBalance = async (token: Token, userAddress: string): Promise<bigint> => {
+    if (!publicClient) {
+      throw new Error('Public client non disponibile');
+    }
+
+    try {
+      if (token.isNative) {
+        // ETH nativo: usa getBalance
+        const balance = await publicClient.getBalance({ address: userAddress as `0x${string}` });
+        return balance;
+      } else {
+        // ERC20: chiama balanceOf(address)
+        const balance = await publicClient.readContract({
+          address: token.address as `0x${string}`,
+          abi: erc20Abi,
+          functionName: 'balanceOf',
+          args: [userAddress as `0x${string}`],
+        });
+        return balance as bigint;
+      }
+    } catch (error) {
+      console.error('Errore lettura saldo:', error);
+      return BigInt(0);
+    }
+  };
+
+  /**
    * Funzione helper per aggiungere e switchare ad Arbitrum
    */
   const addAndSwitchToArbitrum = async () => {
@@ -96,58 +140,79 @@ export function CryptoPaymentDialog({
       walletClient: !!walletClient, 
       address, 
       chain: chain?.name,
+      chainId: chain?.id,
       hasEthereum: typeof window !== 'undefined' && !!(window as { ethereum?: EthereumProvider }).ethereum
     });
 
     try {
       // Prova prima a switchare (forse è già configurato)
+      console.log('🔄 Tentativo switch a chainId:', arbitrum.id);
       await switchChainAsync({ chainId: arbitrum.id });
-      console.log('✅ Switchato ad Arbitrum');
+      console.log('✅ Switchato ad Arbitrum con successo');
       return true;
     } catch (switchError) {
-      console.log('⚠️ Switch fallito, provo ad aggiungere la chain:', switchError);
+      const errorCode = (switchError as { code?: number })?.code;
+      const errorMessage = (switchError as Error)?.message || '';
+      
+      console.log('⚠️ Switch fallito:', { 
+        code: errorCode, 
+        message: errorMessage,
+        error: switchError 
+      });
 
-      // Se lo switch fallisce, prova ad aggiungere la chain usando window.ethereum
-      try {
-        const ethereum = (window as { ethereum?: EthereumProvider }).ethereum;
-        
-        if (typeof window === 'undefined' || !ethereum) {
-          throw new Error('MetaMask non trovato. Installa MetaMask per continuare.');
-        }
-
-        // Usa window.ethereum direttamente (più affidabile)
-        await ethereum.request({
-          method: 'wallet_addEthereumChain',
-          params: [
-            {
-              chainId: `0x${arbitrum.id.toString(16)}`, // 42161 in hex = 0xa4b1
-              chainName: 'Arbitrum One',
-              nativeCurrency: {
-                name: 'Ether',
-                symbol: 'ETH',
-                decimals: 18,
-              },
-              rpcUrls: ['https://arb1.arbitrum.io/rpc'],
-              blockExplorerUrls: ['https://arbiscan.io'],
-            },
-          ],
-        });
-
-        console.log('✅ Arbitrum aggiunto al wallet!');
-        
-        // Dopo averlo aggiunto, ritenta lo switch
-        await switchChainAsync({ chainId: arbitrum.id });
-        return true;
-      } catch (addError) {
-        console.error('❌ Errore aggiunta chain:', addError);
-        
-        // Se l'utente rifiuta
-        if ((addError as { code?: number }).code === 4001) {
-          throw new Error('Hai rifiutato di aggiungere Arbitrum al wallet. Per usare i pagamenti crypto, devi essere su Arbitrum One.');
-        }
-        
-        throw new Error('Impossibile aggiungere Arbitrum al wallet. Prova ad aggiungerlo manualmente.');
+      // Se l'utente rifiuta lo switch
+      if (errorCode === 4001) {
+        throw new Error('Hai rifiutato il cambio di network. Per continuare, devi essere su Arbitrum One.');
       }
+
+      // Se la chain non è configurata, prova ad aggiungerla
+      if (errorMessage.includes('Chain not configured') || errorMessage.includes('Unrecognized chain')) {
+        console.log('📡 Chain non configurata, provo ad aggiungerla...');
+        
+        try {
+          const ethereum = (window as { ethereum?: EthereumProvider }).ethereum;
+          
+          if (typeof window === 'undefined' || !ethereum) {
+            throw new Error('MetaMask non trovato. Installa MetaMask per continuare.');
+          }
+
+          // Usa window.ethereum direttamente (più affidabile)
+          await ethereum.request({
+            method: 'wallet_addEthereumChain',
+            params: [
+              {
+                chainId: `0x${arbitrum.id.toString(16)}`, // 42161 in hex = 0xa4b1
+                chainName: 'Arbitrum One',
+                nativeCurrency: {
+                  name: 'Ether',
+                  symbol: 'ETH',
+                  decimals: 18,
+                },
+                rpcUrls: ['https://arb1.arbitrum.io/rpc'],
+                blockExplorerUrls: ['https://arbiscan.io'],
+              },
+            ],
+          });
+
+          console.log('✅ Arbitrum aggiunto al wallet!');
+          
+          // Dopo averlo aggiunto, ritenta lo switch
+          await switchChainAsync({ chainId: arbitrum.id });
+          return true;
+        } catch (addError) {
+          console.error('❌ Errore aggiunta chain:', addError);
+          
+          // Se l'utente rifiuta
+          if ((addError as { code?: number }).code === 4001) {
+            throw new Error('Hai rifiutato di aggiungere Arbitrum al wallet.');
+          }
+          
+          throw new Error(`Errore aggiunta Arbitrum: ${(addError as Error).message}`);
+        }
+      }
+      
+      // Errore generico
+      throw new Error(`Errore cambio network: ${errorMessage}`);
     }
   };
 
@@ -164,11 +229,41 @@ export function CryptoPaymentDialog({
     setError('');
 
     try {
+      // STEP 0: Verifica chain corrente
+      console.log('🔍 Verifica chain corrente:', {
+        chainId: chain?.id,
+        chainName: chain?.name,
+        arbitrumId: arbitrum.id,
+        isArbitrum: chain?.id === arbitrum.id,
+      });
+
+      // STEP 0.5: Verifica e switcha ad Arbitrum se necessario
+      if (chain?.id !== arbitrum.id) {
+        console.log('🔄 Non sei su Arbitrum, tentativo di switch automatico...');
+        try {
+          await addAndSwitchToArbitrum();
+          console.log('✅ Switch ad Arbitrum completato!');
+          
+          // Aspetta un attimo per permettere a wagmi di aggiornarsi
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        } catch (switchErr) {
+          console.error('❌ Errore durante switch:', switchErr);
+          throw new Error(
+            `Devi essere su Arbitrum One per usare i pagamenti crypto. ` +
+            `Errore switch: ${(switchErr as Error).message}`
+          );
+        }
+      } else {
+        console.log('✅ Sei già su Arbitrum One!');
+      }
+
       console.log('📊 Calcolo quote:', {
         debtAmount,
         currency: debtCurrency,
         srcToken: srcToken.symbol,
         dstToken: dstToken.symbol,
+        chain: chain?.name,
+        chainId: chain?.id,
       });
 
       // 1. Converti EUR → srcToken (CoinGecko)
@@ -182,11 +277,15 @@ export function CryptoPaymentDialog({
         token: srcToken.symbol 
       });
       
-      // Check amount minimo per 1inch (~$1 USD)
-      if (amountInSrcToken < 0.5 && !srcToken.isStablecoin) {
+      // Check amount minimo per 1inch (~$1 in valore, non in quantità di token)
+      const eurValue = debtCurrency === 'EUR'
+        ? debtAmount
+        : await priceService.convertCryptoToEUR(amountInSrcToken, srcToken.symbol);
+
+      if (eurValue < 1) {
         throw new Error(
-          `Importo troppo piccolo per lo swap. 1inch richiede almeno ~$1 USD di valore. ` +
-          `Prova con un importo maggiore o usa una stablecoin.`
+          `Importo troppo piccolo per lo swap. 1inch richiede almeno ~1 EUR/USD di valore. ` +
+          `Aumenta l'importo o usa una stablecoin.`
         );
       }
       
@@ -306,6 +405,39 @@ export function CryptoPaymentDialog({
         }
       }
 
+      // Pre-check saldo sufficiente del token di partenza
+      const amountInWei = parseUnits(srcAmount, srcToken.decimals);
+      const availableWei = await checkTokenBalance(srcToken, address);
+
+      console.log('💰 Check saldo:', {
+        token: srcToken.symbol,
+        richiesto: formatUnits(amountInWei, srcToken.decimals),
+        disponibile: formatUnits(availableWei, srcToken.decimals),
+      });
+
+      if (srcToken.isNative) {
+        // Lascia un piccolo buffer per le gas fee (circa 0.001 ETH)
+        const gasBufferWei = parseUnits('0.001', 18);
+        const requiredWei = amountInWei + gasBufferWei;
+        
+        if (availableWei < requiredWei) {
+          const missingEth = formatUnits(requiredWei - availableWei, 18);
+          throw new Error(
+            `Saldo ETH insufficiente. Ti servono circa ${formatUnits(requiredWei, 18)} ETH ` +
+            `(${formatUnits(amountInWei, 18)} per lo swap + ~0.001 per le gas fee), ` +
+            `ma hai solo ${formatUnits(availableWei, 18)} ETH. ` +
+            `Mancano ~${missingEth} ETH. Ricarica il wallet o usa una stablecoin come token di partenza.`
+          );
+        }
+      } else if (availableWei < amountInWei) {
+        const missing = formatUnits(amountInWei - availableWei, srcToken.decimals);
+        throw new Error(
+          `Saldo ${srcToken.symbol} insufficiente. Ti servono ${formatUnits(amountInWei, srcToken.decimals)} ${srcToken.symbol} ` +
+          `ma hai solo ${formatUnits(availableWei, srcToken.decimals)} ${srcToken.symbol}. ` +
+          `Mancano ${missing} ${srcToken.symbol}. Ricarica il wallet o riduci l'importo.`
+        );
+      }
+
       // Ottieni transazione swap
       const swapTx = await oneInchService.getSwapTransaction(
         srcToken,
@@ -350,11 +482,25 @@ export function CryptoPaymentDialog({
 
     try {
       // Invia token al creditore
-      const txHash = await sendTransactionAsync({
-        to: creditorAddress as `0x${string}`,
-        value: dstToken.isNative ? parseEther(dstAmount) : BigInt(0),
-        data: '0x', // Transfer semplice per ETH, per ERC20 servirebbetransfer()
-      });
+      const txHash = await sendTransactionAsync(
+        dstToken.isNative
+          ? {
+              // ETH nativo: semplice transfer di valore
+              to: creditorAddress as `0x${string}`,
+              value: parseEther(dstAmount),
+              data: '0x',
+            }
+          : {
+              // ERC20: chiama transfer(to, amount)
+              to: dstToken.address as `0x${string}`,
+              value: BigInt(0),
+              data: encodeFunctionData({
+                abi: erc20Abi,
+                functionName: 'transfer',
+                args: [creditorAddress as `0x${string}`, parseUnits(dstAmount, dstToken.decimals)],
+              }),
+            }
+      );
 
       console.log('Transfer tx:', txHash);
 
@@ -384,7 +530,7 @@ export function CryptoPaymentDialog({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+      <DialogContent aria-describedby={undefined} className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             💳 Paga con Crypto

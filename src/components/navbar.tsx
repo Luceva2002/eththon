@@ -53,12 +53,15 @@ export function NavBar() {
               <Wallet />
             </div>
           ) : (
-            <Link href="/sign-in">
-              <Button size="sm" variant="secondary">
-                <Wallet className="h-4 w-4" />
-                Connetti Wallet
-              </Button>
-            </Link>
+            <Button size="sm" variant="secondary" asChild>
+              <Link href="/sign-in">
+                {/* Wallet qui è un'icona, non un button interattivo */}
+                <span className="inline-flex items-center gap-2">
+                  <Wallet className="h-4 w-4" />
+                  Connetti Wallet
+                </span>
+              </Link>
+            </Button>
           )}
         </div>
       </div>
