@@ -37,7 +37,7 @@ export function MintGroupNFT({ open, onClose, group, onSuccess }: MintGroupNFTPr
     }
 
     // Verifica che il contratto sia configurato
-    if (GROUP_NFT_CONTRACT_ADDRESS === '0x0000000000000000000000000000000000000000') {
+    if ((GROUP_NFT_CONTRACT_ADDRESS as string) === '0x0000000000000000000000000000000000000000') {
       setError(
         'Contratto NFT non configurato! Aggiorna GROUP_NFT_CONTRACT_ADDRESS in src/lib/nft-contract.ts con l&apos;indirizzo del contratto deployato.'
       );
