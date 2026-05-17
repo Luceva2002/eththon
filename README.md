@@ -1,57 +1,57 @@
 # 🏆 Eththon — ETH Rome 2025 (Arbitrum & 1inch Bounty Winners!)
 
-> *Splitwise incontra Farcaster, ma nel Web3. Progetto vincitore dei premi bounty di Arbitrum e 1inch all'hackathon di Roma.*
+> *Splitwise meets Farcaster, but in Web3. The winning project for the Arbitrum and 1inch bounties at the Rome hackathon.*
 
-## 🍕 L'Esperienza: 48 Ore di Codice, Caffeina e Web3
+## 🍕 The Experience: 48 Hours of Code, Caffeine, and Web3
 
-Questo progetto non è solo una repository, è il risultato di un fine settimana di fuoco all'**ETH Rome 2025**. L'obiettivo era ambizioso: prendere la comodità di un'app per dividere le spese (alla Splitwise), unirla alle dinamiche social decentralizzate (alla Farcaster) e far girare il tutto su architettura Web3, senza però rinunciare a un'esperienza utente fluida e moderna.
+This project is not just a repository; it's the result of an intense weekend at **ETH Rome**. The goal was ambitious: take the convenience of a bill-splitting app (like Splitwise), combine it with decentralized social dynamics (like Farcaster), and run it all on a Web3 architecture—without sacrificing a smooth, modern user experience.
 
-Dopo 48 ore insonni passate a debuggare componenti, integrare smart contract e perfezionare la UI, abbiamo presentato **Eththon**. Il nostro focus sull'ottimizzazione ci ha premiato: abbiamo conquistato le **bounty ufficiali di Arbitrum e 1inch**! 🚀 
+After 48 sleepless hours spent debugging components, integrating smart contracts, and polishing the UI, we presented **Eththon**. Our focus on optimization paid off: we conquered the **official Arbitrum and 1inch bounties**! 🚀 
 
-Per un'app che deve dividere conti e micro-spese, integrare un Layer 2 come Arbitrum (per abbattere drasticamente le gas fee) e un aggregatore come 1inch (per gestire i cambi token in modo efficiente) è stata la carta vincente. Questa repository contiene lo scaffold del progetto che ci ha portato alla vittoria di questi premi.
-
----
-
-## 💻 Il Progetto
-
-Una piattaforma web moderna per la divisione delle spese tra gruppi di amici, costruita con Next.js, TypeScript, Tailwind CSS e shadcn/ui. 
-
-### 🚀 Caratteristiche Principali
-* ✅ **Autenticazione Ibrida**: Sistema di login tradizionale affiancato al supporto per connessione wallet crypto.
-* 📊 **Dashboard Intelligente**: Vista d'insieme di tutti i gruppi con statistiche aggregate e bilanci.
-* 👥 **Gestione Gruppi**: Creazione e amministrazione di gruppi per dividere le spese in modo equo.
-* 💰 **Tracking Spese**: Monitoraggio in tempo reale di chi deve dare e chi deve ricevere fondi.
-* 🔗 **Integrazione Wallet**: Connessione diretta del wallet crypto (attualmente implementata in mock per la demo).
-* 📱 **Responsive Design**: UI mobile-first adattiva, perfetta per gestire i conti direttamente dallo smartphone dopo una cena.
-* ♿ **Accessibilità**: Focus sulla navigazione da tastiera e supporto screen reader tramite label accessibili.
+For an app designed to split bills and manage micro-transactions, integrating a Layer 2 like Arbitrum (to drastically reduce gas fees) and an aggregator like 1inch (to handle token swaps efficiently) was the winning move. This repository contains the scaffold of the project that led us to win these prizes.
 
 ---
 
-## 🛠️ Stack Tecnologico
+## 💻 The Project
+
+A modern web platform for splitting expenses among groups of friends, built with Next.js, TypeScript, Tailwind CSS, and shadcn/ui. 
+
+### 🚀 Key Features
+* ✅ **Hybrid Authentication**: Traditional login system alongside crypto wallet connection support.
+* 📊 **Smart Dashboard**: A comprehensive overview of all groups with aggregated statistics and balances.
+* 👥 **Group Management**: Create and manage groups to split expenses fairly.
+* 💰 **Expense Tracking**: Real-time monitoring of who owes what and who is owed funds.
+* 🔗 **Wallet Integration**: Direct connection of crypto wallets (currently mocked for the demo UI).
+* 📱 **Responsive Design**: Adaptive mobile-first UI, perfect for splitting the bill right from your smartphone after a dinner.
+* ♿ **Accessibility**: Focus on keyboard navigation and screen reader support through accessible ARIA labels.
+
+---
+
+## 🛠️ Tech Stack
 
 * **Framework:** Next.js 15 (App Router)
-* **Linguaggio:** TypeScript
+* **Language:** TypeScript
 * **Styling:** Tailwind CSS 4
-* **Componenti UI:** shadcn/ui (Radix UI)
-* **Iconografia:** Lucide React
-* **Gestione Stato:** React hooks + localStorage (Mock state management)
+* **UI Components:** shadcn/ui (Radix UI)
+* **Icons:** Lucide React
+* **State Management:** React hooks + localStorage (Mock state management)
 * **Web3 Integration (Hackathon Focus):** Arbitrum (L2 Scaling), 1inch (DEX Aggregator)
 
 ---
 
-## 🚀 Installazione e Avvio
+## 🚀 Installation and Setup
 
-### Prerequisiti
+### Prerequisites
 * Node.js 18+ 
-* npm o yarn
+* npm or yarn
 
 ### Setup
 ```bash
-# Clona il progetto e naviga nella cartella
+# Clone the project and navigate to the directory
 cd ethton
 
-# Installa le dipendenze
+# Install dependencies
 npm install
 
-# Avvia il server di sviluppo
+# Start the development server
 npm run dev
