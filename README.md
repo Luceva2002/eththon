@@ -1,4 +1,4 @@
-# Ethton - Bill Splitting Platform
+# Eththon - Bill Splitting Platform
 
 Una piattaforma web moderna per la divisione delle spese tra gruppi di amici, costruita con Next.js, TypeScript, Tailwind CSS e shadcn/ui.
 
