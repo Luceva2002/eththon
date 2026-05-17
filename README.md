@@ -1,227 +1,57 @@
-# Eththon - Bill Splitting Platform
+# 🏆 Eththon — ETH Rome 2025 (Arbitrum & 1inch Bounty Winners!)
 
-Una piattaforma web moderna per la divisione delle spese tra gruppi di amici, costruita con Next.js, TypeScript, Tailwind CSS e shadcn/ui.
+> *Splitwise incontra Farcaster, ma nel Web3. Progetto vincitore dei premi bounty di Arbitrum e 1inch all'hackathon di Roma.*
 
-## 🚀 Caratteristiche
+## 🍕 L'Esperienza: 48 Ore di Codice, Caffeina e Web3
 
-- ✅ **Autenticazione**: Sistema di login/registrazione con supporto per connessione wallet crypto
-- 📊 **Dashboard**: Vista d'insieme di tutti i gruppi con statistiche aggregate
-- 👥 **Gestione Gruppi**: Crea e gestisci gruppi per dividere le spese
-- 💰 **Tracking Spese**: Monitora chi deve dare e chi deve ricevere denaro
-- 🔗 **Integrazione Wallet**: Connetti il tuo wallet crypto (mock per ora)
-- 📱 **Responsive**: Design mobile-first con layout adattivo
-- ♿ **Accessibile**: Focus sulla navigazione da tastiera e label accessibili
+Questo progetto non è solo una repository, è il risultato di un fine settimana di fuoco all'**ETH Rome 2025**. L'obiettivo era ambizioso: prendere la comodità di un'app per dividere le spese (alla Splitwise), unirla alle dinamiche social decentralizzate (alla Farcaster) e far girare il tutto su architettura Web3, senza però rinunciare a un'esperienza utente fluida e moderna.
+
+Dopo 48 ore insonni passate a debuggare componenti, integrare smart contract e perfezionare la UI, abbiamo presentato **Eththon**. Il nostro focus sull'ottimizzazione ci ha premiato: abbiamo conquistato le **bounty ufficiali di Arbitrum e 1inch**! 🚀 
+
+Per un'app che deve dividere conti e micro-spese, integrare un Layer 2 come Arbitrum (per abbattere drasticamente le gas fee) e un aggregatore come 1inch (per gestire i cambi token in modo efficiente) è stata la carta vincente. Questa repository contiene lo scaffold del progetto che ci ha portato alla vittoria di questi premi.
+
+---
+
+## 💻 Il Progetto
+
+Una piattaforma web moderna per la divisione delle spese tra gruppi di amici, costruita con Next.js, TypeScript, Tailwind CSS e shadcn/ui. 
+
+### 🚀 Caratteristiche Principali
+* ✅ **Autenticazione Ibrida**: Sistema di login tradizionale affiancato al supporto per connessione wallet crypto.
+* 📊 **Dashboard Intelligente**: Vista d'insieme di tutti i gruppi con statistiche aggregate e bilanci.
+* 👥 **Gestione Gruppi**: Creazione e amministrazione di gruppi per dividere le spese in modo equo.
+* 💰 **Tracking Spese**: Monitoraggio in tempo reale di chi deve dare e chi deve ricevere fondi.
+* 🔗 **Integrazione Wallet**: Connessione diretta del wallet crypto (attualmente implementata in mock per la demo).
+* 📱 **Responsive Design**: UI mobile-first adattiva, perfetta per gestire i conti direttamente dallo smartphone dopo una cena.
+* ♿ **Accessibilità**: Focus sulla navigazione da tastiera e supporto screen reader tramite label accessibili.
+
+---
 
 ## 🛠️ Stack Tecnologico
 
-- **Framework**: Next.js 15 (App Router)
-- **Linguaggio**: TypeScript
-- **Styling**: Tailwind CSS 4
-- **Componenti UI**: shadcn/ui (Radix UI)
-- **Icone**: Lucide React
-- **Gestione Stato**: React hooks + localStorage (mock)
+* **Framework:** Next.js 15 (App Router)
+* **Linguaggio:** TypeScript
+* **Styling:** Tailwind CSS 4
+* **Componenti UI:** shadcn/ui (Radix UI)
+* **Iconografia:** Lucide React
+* **Gestione Stato:** React hooks + localStorage (Mock state management)
+* **Web3 Integration (Hackathon Focus):** Arbitrum (L2 Scaling), 1inch (DEX Aggregator)
 
-## 📁 Struttura del Progetto
-
-```
-ethton/
-├── src/
-│   ├── app/                    # Next.js App Router pages
-│   │   ├── sign-in/           # Pagina di login
-│   │   ├── sign-in/           # Pagina di accesso
-│   │   ├── profile/           # Profilo utente
-│   │   ├── groups/            # Pagine dei gruppi
-│   │   │   ├── new/          # Crea nuovo gruppo
-│   │   │   └── [groupId]/    # Dettaglio gruppo
-│   │   ├── layout.tsx         # Layout principale
-│   │   ├── page.tsx           # Home/Dashboard
-│   │   └── globals.css        # Stili globali
-│   ├── components/            # Componenti React
-│   │   ├── ui/               # Componenti shadcn/ui
-│   │   ├── navbar.tsx        # Barra di navigazione
-│   │   ├── group-card.tsx    # Card gruppo
-│   │   ├── stat-chip.tsx     # Chip statistiche
-│   │   ├── wallet-connect-button.tsx
-│   │   └── create-group-form.tsx
-│   └── lib/                   # Utilities e servizi
-│       ├── types.ts          # TypeScript types
-│       ├── utils.ts          # Helper functions
-│       ├── auth-service.ts   # Servizio autenticazione (mock)
-│       ├── wallet-service.ts # Servizio wallet (mock)
-│       └── group-service.ts  # Servizio gruppi (mock)
-├── public/                    # Asset statici
-├── package.json
-├── tsconfig.json
-└── README.md
-```
+---
 
 ## 🚀 Installazione e Avvio
 
 ### Prerequisiti
+* Node.js 18+ 
+* npm o yarn
 
-- Node.js 18+ 
-- npm o yarn
-
-### Installazione Dipendenze
-
+### Setup
 ```bash
-cd /Users/body/Desktop/ethton
+# Clona il progetto e naviga nella cartella
+cd ethton
+
+# Installa le dipendenze
 npm install
-```
 
-### Avvio in Modalità Sviluppo
-
-```bash
+# Avvia il server di sviluppo
 npm run dev
-```
-
-L'applicazione sarà disponibile su [http://localhost:3000](http://localhost:3000)
-
-### Build per Produzione
-
-```bash
-npm run build
-npm start
-```
-
-## 📄 Pagine e Route
-
-| Route | Descrizione | Funzionalità |
-|-------|-------------|--------------|
-| `/` | Home/Dashboard | Mostra tutti i gruppi dell'utente con statistiche |
-| `/sign-in` | Login | Form di accesso con email/password |
-| `/sign-in` | Accesso | Connessione wallet e nickname |
-| `/profile` | Profilo | Visualizza e gestisci info utente e wallet |
-| `/groups/new` | Crea Gruppo | Form per creare un nuovo gruppo |
-| `/groups/[id]` | Dettaglio Gruppo | Visualizza membri, spese e saldi |
-
-## 🎨 Componenti Principali
-
-### UI Components (shadcn/ui)
-- `Button` - Bottoni con varianti
-- `Card` - Container con header/content/footer
-- `Input` - Input di testo
-- `Label` - Label per form
-- `Avatar` - Avatar utente
-- `Dialog` - Finestre modali
-- `Badge` - Etichette colorate
-- `Tabs` - Schede navigabili
-- `DropdownMenu` - Menu dropdown
-
-### Custom Components
-- `NavBar` - Barra di navigazione con menu utente
-- `WalletConnectButton` - Bottone per connettere wallet crypto
-- `GroupCard` - Card per visualizzare un gruppo
-- `StatChip` - Chip per mostrare statistiche
-- `CreateGroupForm` - Form di creazione gruppo
-
-## 🔐 Autenticazione (Mock)
-
-L'autenticazione è attualmente implementata con logica mock:
-- Accetta qualsiasi email/password
-- I dati sono salvati in localStorage
-- La connessione wallet genera un indirizzo mock
-
-**TODO per produzione:**
-- Implementare autenticazione reale (NextAuth, Supabase, Auth0, etc.)
-- Aggiungere validazione lato server
-- Implementare sessioni sicure
-
-## 💳 Wallet Crypto (Mock)
-
-La funzionalità wallet è attualmente mock:
-- Genera indirizzi Ethereum casuali
-- Simula la connessione con delay
-- Stato salvato in localStorage
-
-**TODO per produzione:**
-- Integrare Web3 provider reale (ethers.js, wagmi, RainbowKit)
-- Supportare MetaMask, WalletConnect, ecc.
-- Implementare transazioni on-chain
-
-## 📊 Gestione Dati (Mock)
-
-I dati sono attualmente gestiti con:
-- localStorage per persistenza
-- Dati mock iniziali
-- Operazioni simulate con delay
-
-**TODO per produzione:**
-- Implementare API backend (REST o GraphQL)
-- Database (PostgreSQL, MongoDB, etc.)
-- Autenticazione API
-- Validazione e sicurezza
-
-## ♿ Accessibilità
-
-L'applicazione include:
-- Label ARIA per tutti gli input
-- Navigazione da tastiera completa
-- Stati di focus visibili
-- Testo alternativo per icone importanti
-- Contrasto colori conforme WCAG
-
-## 🎨 Design
-
-- **Layout**: Mobile-first, responsive
-- **Colori**: Sistema di design con dark mode
-- **Tipografia**: System fonts per performance
-- **Spacing**: Sistema di spaziatura consistente
-- **Componenti**: shadcn/ui per consistenza
-
-## 🔄 Prossimi Passi
-
-### Backend & Database
-- [ ] Creare API backend (Node.js/Express, tRPC, o Prisma)
-- [ ] Configurare database
-- [ ] Implementare autenticazione reale
-- [ ] API per CRUD gruppi e spese
-
-### Funzionalità Spese
-- [ ] Form per aggiungere spese
-- [ ] Calcolo automatico dei saldi
-- [ ] Algoritmo per suggerire pagamenti ottimali
-- [ ] Storico transazioni
-
-### Funzionalità Wallet
-- [ ] Integrazione Web3 reale
-- [ ] Supporto multiple chain
-- [ ] Transazioni crypto on-chain
-- [ ] Gas estimation
-
-### UX Improvements
-- [ ] Notifiche in-app
-- [ ] Inviti via email/link
-- [ ] Upload immagini/ricevute
-- [ ] Grafici e statistiche avanzate
-- [ ] Export PDF/Excel
-
-### Testing
-- [ ] Unit tests (Jest)
-- [ ] Integration tests
-- [ ] E2E tests (Playwright)
-- [ ] Accessibility tests
-
-## 📝 Note
-
-- **Dati Mock**: Tutti i dati sono attualmente memorizzati in localStorage e verranno resettati alla pulizia del browser
-- **Wallet**: La connessione wallet è simulata e non effettua transazioni reali
-- **Autenticazione**: L'autenticazione è basica e non sicura per produzione
-- **Responsive**: Testato su desktop, tablet e mobile
-
-## 🤝 Contributi
-
-Questo è un progetto scaffold per dimostrare l'architettura. Per estenderlo:
-
-1. Implementare il backend (vedi TODO)
-2. Sostituire i mock service con API reali
-3. Aggiungere testing
-4. Implementare funzionalità crypto reali
-
-## 📄 Licenza
-
-Questo progetto è fornito come scaffold di esempio.
-
----
-
-**Costruito con** ❤️ **usando Next.js, TypeScript e shadcn/ui**
